@@ -210,19 +210,14 @@ export default function Footer() {
   };
 
   return (
-    <>
-      {/* ── Premium CTA ────────────────────────────── */}
-      <CTASection />
+    <footer className="relative border-t border-accent/[0.08] bg-[rgba(5,12,10,0.92)] backdrop-blur-xl mt-8">
+      {/* Animated circuit divider */}
+      <div className="absolute top-0 left-0 right-0">
+        <CircuitLine />
+      </div>
 
-      {/* ── Footer ─────────────────────────────────── */}
-      <footer className="relative border-t border-accent/[0.06] bg-[rgba(5,12,10,0.92)] backdrop-blur-xl">
-        {/* Animated circuit divider */}
-        <div className="absolute top-0 left-0 right-0">
-          <CircuitLine />
-        </div>
-
-        {/* ── Main Grid ──────────────────────────── */}
-        <div className="mx-auto max-w-7xl px-4 pt-16 pb-10 md:px-8 lg:px-10">
+      {/* ── Main Grid ──────────────────────────── */}
+      <div className="mx-auto max-w-7xl px-4 pt-12 pb-10 md:px-8 lg:px-10">
           <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
             {/* ── Column 1 · Brand ────────────────── */}
             <motion.div
@@ -382,6 +377,5 @@ export default function Footer() {
           </div>
         </div>
       </footer>
-    </>
   );
 }

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Cpu,
@@ -20,8 +21,7 @@ import {
   MessageSquare,
   ExternalLink,
   Mail,
-  Users,
-  Building2,
+  ArrowRight,
 } from "lucide-react";
 import HeroPanel from "../../components/hero/HeroPanel";
 import Navbar from "../../components/layout/Navbar";
@@ -83,13 +83,7 @@ const workflowSteps = [
   { step: "PASS / FAIL", icon: Cpu },
 ];
 
-const contactItems = [
-  { label: "Guide", value: "Prof. Dr. Embedded Systems", icon: Users },
-  { label: "Department", value: "Electronics & Computer Science", icon: Building2 },
-  { label: "Project Team", value: "PI-AOI Research Group", icon: GitBranch },
-  { label: "Email", value: "team@inspectiq.dev", icon: Mail },
-  { label: "GitHub", value: "prit-esh-20/Inspect-IQ", icon: ExternalLink },
-];
+
 
 function SectionLabel({ children }) {
   return (
@@ -375,58 +369,184 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* CONTACT SECTION */}
+      {/* PROJECT INFORMATION SECTION */}
       <section
         id="contact"
-        className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 pt-14 pb-8 md:px-8 lg:px-10"
       >
-        <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+          {/* LEFT COLUMN */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="flex flex-col justify-between space-y-6"
+          >
+            <div>
+              <SectionLabel>Project Information</SectionLabel>
+              <SectionTitle className="mt-3 leading-tight">
+                Ready to Explore InspectIQ?
+              </SectionTitle>
+              <div className="mt-5 space-y-4 max-w-xl text-base leading-relaxed text-slate-400">
+                <p>
+                  InspectIQ is an Embedded Explainable AI platform for Automated
+                  Optical Inspection of Printed Circuit Boards.
+                </p>
+                <p>
+                  Built using YOLOv8, X-MCCV, Grad-CAM and Raspberry Pi for
+                  intelligent, transparent, and reliable PCB quality inspection.
+                </p>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="pt-2 flex flex-wrap items-center gap-4">
+              <Link
+                to="/dashboard"
+                className="group inline-flex items-center gap-2.5 rounded-full bg-accent px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#07110F] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(50,213,131,0.3)]"
+              >
+                Launch Dashboard
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </Link>
+              <a
+                href="https://github.com/prit-esh-20/Inspect-IQ"
+                target="_blank"
+                rel="noreferrer"
+                className="group inline-flex items-center gap-2.5 rounded-full border border-accent/20 bg-accent/5 px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition-all duration-300 hover:border-accent/40 hover:bg-accent/10 hover:text-white"
+              >
+                View GitHub Repository
+                <ExternalLink className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </a>
+            </div>
+          </motion.div>
+
+          {/* RIGHT COLUMN - 2x2 GLASS GRID */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Card 1: Project */}
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.5, delay: 0.05 }}
+              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
+              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
             >
-              <SectionLabel>Contact</SectionLabel>
-              <SectionTitle className="mt-3 leading-tight">
-                Partner with a platform designed for industrial trust.
-              </SectionTitle>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-400">
-                From research teams to production environments, the system is
-                built to support transparent inspection workflows with long-term
-                scalability in mind.
+              <div>
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <Box className="h-5 w-5" />
+                </div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
+                  Project
+                </div>
+                <div className="font-display text-lg font-bold tracking-wide text-white">
+                  InspectIQ
+                </div>
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-slate-400">
+                Embedded XAI-Based Automated Optical Inspection System
               </p>
             </motion.div>
+
+            {/* Card 2: Technology Stack */}
             <motion.div
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="grid gap-4"
+              transition={{ duration: 0.5, delay: 0.1 }}
+              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
+              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
             >
-              {contactItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-4 rounded-xl border border-accent/10 bg-[rgba(7,17,15,0.65)] p-4"
+              <div>
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <Layers className="h-5 w-5" />
+                </div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
+                  Technology Stack
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {[
+                  "YOLOv8",
+                  "OpenCV",
+                  "PyTorch",
+                  "FastAPI",
+                  "React",
+                  "Raspberry Pi",
+                ].map((tech) => (
+                  <span
+                    key={tech}
+                    className="inline-block rounded-full border border-accent/20 bg-accent/10 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-accent cyber-glow-green transition-all duration-300 hover:border-accent/40 hover:bg-accent/20"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-accent/15 bg-accent/5 text-accent">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
-                        {item.label}
-                      </div>
-                      <div className="mt-1 font-display text-sm uppercase tracking-[0.25em] text-white">
-                        {item.value}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    {tech}
+                  </span>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Card 3: Repository */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
+              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
+            >
+              <div>
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <GitBranch className="h-5 w-5" />
+                </div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
+                  Repository
+                </div>
+                <div className="font-display text-lg font-bold tracking-wide text-white">
+                  GitHub
+                </div>
+              </div>
+              <a
+                href="https://github.com/prit-esh-20/Inspect-IQ"
+                target="_blank"
+                rel="noreferrer"
+                className="group/link inline-flex items-center gap-1.5 mt-3 text-xs text-accent transition-colors hover:text-white"
+              >
+                <span className="truncate font-mono">
+                  github.com/prit-esh-20/Inspect-IQ
+                </span>
+                <ExternalLink className="h-3 w-3 shrink-0 transition-transform group-hover/link:translate-x-0.5" />
+              </a>
+            </motion.div>
+
+            {/* Card 4: Contact */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
+              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
+            >
+              <div>
+                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
+                  Contact
+                </div>
+                <div className="font-display text-lg font-bold tracking-wide text-white">
+                  Email
+                </div>
+              </div>
+              <a
+                href="mailto:team.inspectiq@gmail.com"
+                className="group/link inline-flex items-center gap-1.5 mt-3 text-xs text-accent transition-colors hover:text-white"
+              >
+                <span className="font-mono">team.inspectiq@gmail.com</span>
+                <ArrowRight className="h-3 w-3 shrink-0 transition-transform group-hover/link:translate-x-0.5" />
+              </a>
             </motion.div>
           </div>
+        </div>
       </section>
 
       {/* PREMIUM FOOTER */}
