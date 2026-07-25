@@ -26,8 +26,8 @@ import {
 import HeroPanel from "../../components/hero/HeroPanel";
 import Navbar from "../../components/layout/Navbar";
 import PageWrapper from "../../components/layout/PageWrapper";
+import Footer from "../../components/layout/Footer";
 import GlassMetricCards from "../../components/hero/GlassMetricCards";
-import { scrollToSection } from "../../hooks/useSmoothScroll";
 
 const showcaseCards = [
   {
@@ -129,12 +129,6 @@ function CardCircuit({ className = "" }) {
 }
 
 export default function LandingPage() {
-  const handleAnchor = (event, selector) => {
-    event.preventDefault();
-    window.history.replaceState(null, "", selector);
-    scrollToSection(selector);
-  };
-
   return (
     <PageWrapper className="relative min-h-screen overflow-x-hidden pt-24">
       <Navbar />
@@ -386,8 +380,7 @@ export default function LandingPage() {
         id="contact"
         className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
       >
-        <div className="rounded-2xl border border-accent/10 bg-[rgba(13,27,23,0.8)] p-10 shadow-[0_18px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -434,39 +427,10 @@ export default function LandingPage() {
               })}
             </motion.div>
           </div>
-        </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-accent/10 bg-[rgba(7,17,15,0.78)] px-4 py-8 md:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-2">
-            <Cpu className="h-4 w-4 text-accent" /> InspectIQ AOI Platform
-          </div>
-          <div className="flex flex-wrap gap-4">
-            <a
-              href="#about"
-              onClick={(event) => handleAnchor(event, "#about")}
-              className="transition-colors hover:text-white"
-            >
-              About
-            </a>
-            <a
-              href="#contact"
-              onClick={(event) => handleAnchor(event, "#contact")}
-              className="transition-colors hover:text-white"
-            >
-              Contact
-            </a>
-            <a href="/login" className="transition-colors hover:text-white">
-              Login
-            </a>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
-              GitHub
-            </a>
-          </div>
-        </div>
-      </footer>
+      {/* PREMIUM FOOTER */}
+      <Footer />
     </PageWrapper>
   );
 }
