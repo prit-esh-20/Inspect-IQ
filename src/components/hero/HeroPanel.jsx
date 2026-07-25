@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Play, ArrowRight } from "lucide-react";
+import { Play, ArrowRight, ChevronDown } from "lucide-react";
+import { scrollToSection } from "../../hooks/useSmoothScroll";
 
 const techPills = [
   "Raspberry Pi",
@@ -22,18 +24,46 @@ const fadeUp = {
 };
 
 export default function HeroPanel() {
+  const [cueDimmed, setCueDimmed] = useState(false);
+  const cueIntroDelay = useRef(1.4);
+
+  const handleAnchor = (event, selector) => {
+    event.preventDefault();
+    window.history.replaceState(null, "", selector);
+    scrollToSection(selector);
+  };
+
+  const handleScrollCue = (event) => {
+    event.preventDefault();
+    window.history.replaceState(null, "", "#about");
+    // fade the indicator while the page glides, restore on arrival
+    setCueDimmed(true);
+    scrollToSection("#about", { onComplete: () => setCueDimmed(false) });
+  };
+
   return (
     <section
       id="home"
-      className="relative mx-auto flex min-h-[calc(100vh-6rem)] max-w-5xl flex-col items-center justify-center px-4 py-20 text-center md:px-8 lg:py-28"
+      className="relative mx-auto flex min-h-[calc(85vh-6rem)] w-full max-w-[60rem] flex-col items-center justify-center px-4 pb-28 pt-12 text-center md:px-8"
     >
+      {/* Soft radial spotlight — darkens the center for readability while the
+          animated board stays visible in the peripheral space */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[135%] w-[165%] -translate-x-1/2 -translate-y-1/2"
+        style={{
+          background:
+            "radial-gradient(ellipse 52% 54% at center, rgba(7,17,15,0.75) 0%, rgba(7,17,15,0.4) 46%, rgba(7,17,15,0) 72%), radial-gradient(ellipse 28% 30% at center, rgba(50,213,131,0.05) 0%, rgba(50,213,131,0) 70%)",
+        }}
+      />
+
       {/* Badge */}
       <motion.div
         variants={fadeUp}
         initial="hidden"
         animate="visible"
         custom={0}
-        className="mb-10 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-4 py-1.5 text-[11px] uppercase tracking-[0.28em] text-accent"
+        className="mb-8 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-4 py-1.5 text-[11px] uppercase tracking-[0.28em] text-accent"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_#32d583]" />
         Explainable AI · Automated Optical Inspection
@@ -74,7 +104,7 @@ export default function HeroPanel() {
         initial="hidden"
         animate="visible"
         custom={0.3}
-        className="mt-8 max-w-[600px] text-base leading-relaxed text-slate-400 sm:text-lg sm:leading-relaxed"
+        className="mx-auto mt-8 max-w-[650px] text-base leading-[1.6] text-slate-400 sm:text-lg"
       >
         A next-generation Automated Optical Inspection platform that combines
         Computer Vision, YOLO, Explainable AI, and X-MCCV verification to
@@ -82,7 +112,7 @@ export default function HeroPanel() {
       </motion.p>
 
       {/* CTAs — slide in from opposite sides */}
-      <div className="mt-12 flex flex-wrap items-center justify-center gap-6">
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-8">
         <motion.a
           href="/dashboard"
           initial={{ opacity: 0, x: -32 }}
@@ -90,7 +120,7 @@ export default function HeroPanel() {
           transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          className="group inline-flex items-center justify-center gap-2.5 rounded-xl bg-accent px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-bg transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.35)]"
+          className="group inline-flex items-center justify-center gap-2.5 rounded-xl bg-accent px-10 py-[1.15rem] text-xs font-semibold uppercase tracking-[0.24em] text-primary-bg transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.35)]"
         >
           <Play className="h-4 w-4 fill-current" />
           Launch Dashboard
@@ -98,6 +128,7 @@ export default function HeroPanel() {
         </motion.a>
         <motion.a
           href="#technology"
+          onClick={(event) => handleAnchor(event, "#technology")}
           initial={{ opacity: 0, x: 32 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
@@ -110,8 +141,8 @@ export default function HeroPanel() {
         </motion.a>
       </div>
 
-      {/* Technology pills — sequential fade */}
-      <div className="mt-14 flex flex-wrap items-center justify-center gap-3">
+      {/* Technology pills — sequential fade, directly under the CTAs */}
+      <div className="mt-8 flex max-w-[650px] flex-wrap items-center justify-center gap-3">
         {techPills.map((pill, i) => (
           <motion.span
             key={pill}
@@ -124,6 +155,33 @@ export default function HeroPanel() {
           </motion.span>
         ))}
       </div>
+
+      {/* Scroll indicator — gentle floating cue at the bottom of the hero */}
+      <motion.a
+        href="#about"
+        onClick={handleScrollCue}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: cueDimmed ? 0 : 1 }}
+        transition={{
+          duration: cueDimmed ? 0.35 : 0.8,
+          delay: cueDimmed ? 0 : cueIntroDelay.current,
+          ease: "easeOut",
+        }}
+        onAnimationComplete={() => {
+          cueIntroDelay.current = 0;
+        }}
+        className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-slate-500 transition-colors duration-300 hover:text-accent"
+      >
+        <span className="text-[10px] font-medium uppercase tracking-[0.3em]">
+          Scroll to Explore
+        </span>
+        <motion.span
+          animate={{ y: [0, 7, 0] }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </motion.span>
+      </motion.a>
     </section>
   );
 }

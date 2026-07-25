@@ -9,7 +9,6 @@ import {
   Code2,
   Camera,
   Database,
-  Cpu as ChipIcon,
   Layers,
   GitBranch,
   Box,
@@ -26,40 +25,40 @@ import {
 } from "lucide-react";
 import HeroPanel from "../../components/hero/HeroPanel";
 import Navbar from "../../components/layout/Navbar";
-import GlassCard from "../../components/cards/GlassCard";
 import PageWrapper from "../../components/layout/PageWrapper";
 import GlassMetricCards from "../../components/hero/GlassMetricCards";
+import { scrollToSection } from "../../hooks/useSmoothScroll";
 
-const featureCards = [
+const showcaseCards = [
   {
-    title: "Real-Time Inspection",
-    copy: "Live defect detection with low-latency inference on embedded hardware.",
+    title: "Real-Time PCB Inspection",
+    copy: "Boards are captured and analyzed the moment they enter the station — live video in, defect verdicts out, right on the production line.",
     icon: ScanSearch,
+    points: [
+      { label: "Live Camera Feed", icon: Camera },
+      { label: "YOLO Detection", icon: ScanSearch },
+      { label: "Fast Inference", icon: Zap },
+    ],
   },
   {
     title: "Explainable AI",
-    copy: "Every decision carries visible reasoning through Grad-CAM and confidence overlays.",
+    copy: "Every verdict ships with visual evidence and confidence, so engineers can trust — and audit — each decision.",
     icon: Sparkles,
+    points: [
+      { label: "Grad-CAM", icon: Lightbulb },
+      { label: "Confidence Scores", icon: Gauge },
+      { label: "Decision Transparency", icon: ShieldCheck },
+    ],
   },
   {
     title: "Embedded Deployment",
-    copy: "Optimized for Raspberry Pi and industrial edge compute environments.",
-    icon: ChipIcon,
-  },
-  {
-    title: "Industrial Accuracy",
-    copy: "Validation rules aligned with quality engineering and assembly tolerances.",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Fast Processing",
-    copy: "Near-real-time inspection flow designed for manufacturing throughput.",
-    icon: Gauge,
-  },
-  {
-    title: "Affordable Solution",
-    copy: "A scalable inspection platform for research, pilot, and production adoption.",
-    icon: CircuitBoard,
+    copy: "The full pipeline runs on low-cost edge hardware — on the line, next to the camera, even without a network.",
+    icon: Microchip,
+    points: [
+      { label: "Raspberry Pi", icon: Cpu },
+      { label: "Edge AI", icon: CircuitBoard },
+      { label: "Offline Processing", icon: Database },
+    ],
   },
 ];
 
@@ -108,7 +107,34 @@ function SectionTitle({ children, className = "" }) {
   );
 }
 
+function CardCircuit({ className = "" }) {
+  // Subtle PCB traces + AI nodes decorating the showcase cards.
+  return (
+    <svg
+      viewBox="0 0 220 140"
+      fill="none"
+      aria-hidden="true"
+      className={`pointer-events-none absolute text-accent ${className}`}
+    >
+      <path d="M6 96h44l18-18h52V48h38" stroke="currentColor" strokeOpacity="0.14" strokeWidth="1" />
+      <path d="M0 118h72l14 14h60" stroke="currentColor" strokeOpacity="0.1" strokeWidth="1" />
+      <path d="M160 132V96l22-22h32" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" />
+      <circle cx="50" cy="96" r="2.4" fill="currentColor" fillOpacity="0.22" />
+      <circle cx="120" cy="48" r="2.4" fill="currentColor" fillOpacity="0.18" />
+      <circle cx="182" cy="74" r="2.2" fill="currentColor" fillOpacity="0.2" />
+      <circle cx="146" cy="132" r="1.8" fill="currentColor" fillOpacity="0.25" />
+      <rect x="152" y="42" width="12" height="12" rx="2" stroke="currentColor" strokeOpacity="0.16" />
+    </svg>
+  );
+}
+
 export default function LandingPage() {
+  const handleAnchor = (event, selector) => {
+    event.preventDefault();
+    window.history.replaceState(null, "", selector);
+    scrollToSection(selector);
+  };
+
   return (
     <PageWrapper className="relative min-h-screen overflow-x-hidden pt-24">
       <Navbar />
@@ -116,14 +142,14 @@ export default function LandingPage() {
       <HeroPanel />
 
       {/* KPI SECTION */}
-      <section className="mx-auto max-w-7xl px-4 pb-16 md:px-8 lg:px-10">
+      <section className="mx-auto max-w-7xl px-4 pb-10 md:px-8 lg:px-10">
         <GlassMetricCards />
       </section>
 
       {/* ABOUT SECTION */}
       <section
         id="about"
-        className="mx-auto max-w-7xl px-4 py-28 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
       >
         <div className="grid gap-14 lg:grid-cols-[1fr_1fr] lg:items-center">
           <motion.div
@@ -175,45 +201,75 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FEATURES SECTION */}
+      {/* FEATURES SECTION — premium product showcase */}
       <section
         id="features"
-        className="mx-auto max-w-7xl px-4 py-28 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
       >
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-12"
+          className="mx-auto mb-12 max-w-6xl text-center"
         >
-          <SectionLabel>Features</SectionLabel>
-          <SectionTitle className="mt-2 max-w-3xl">
-            Built for quality teams, engineers, and production environments.
-          </SectionTitle>
+          <SectionLabel>Why InspectIQ?</SectionLabel>
+          <h2 className="mt-4 font-display text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-[1.75rem] xl:text-4xl">
+            Intelligent Inspection.{" "}
+            <span className="bg-gradient-to-r from-accent via-[#7ce7ac] to-accent bg-clip-text text-transparent">
+              Explainable Decisions.
+            </span>{" "}
+            Industrial Reliability.
+          </h2>
+          <p className="mx-auto mt-4 max-w-[560px] text-base leading-[1.6] text-slate-400 sm:text-lg">
+            One platform that captures, detects, explains, and verifies every
+            board on the line.
+          </p>
         </motion.div>
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {featureCards.map((feature) => {
-            const Icon = feature.icon;
+
+        <div className="grid gap-6 md:grid-cols-3">
+          {showcaseCards.map((card, index) => {
+            const Icon = card.icon;
             return (
-              <GlassCard
-                key={feature.title}
-                className="group space-y-5 rounded-[1.5rem] border border-accent/10 p-8"
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 24, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.65, delay: 0.1 * index, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -8 }}
+                className="group relative overflow-hidden rounded-[1.75rem] border border-accent/10 bg-gradient-to-br from-[rgba(13,27,23,0.88)] via-[rgba(13,27,23,0.75)] to-[rgba(50,213,131,0.06)] p-7 backdrop-blur-xl transition-[border-color,box-shadow] duration-500 hover:border-accent/35 hover:shadow-[0_20px_60px_rgba(50,213,131,0.12)] lg:p-8"
               >
-                <motion.div
-                  whileHover={{ rotate: 6, scale: 1.06 }}
-                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl border border-accent/15 bg-accent/5 text-accent"
-                >
-                  <Icon className="h-7 w-7" />
-                </motion.div>
-                <h3 className="font-display text-lg font-semibold uppercase tracking-[0.22em] text-white">
-                  {feature.title}
-                </h3>
-                <p className="text-base leading-relaxed text-slate-400">
-                  {feature.copy}
-                </p>
-              </GlassCard>
+                <CardCircuit className="-bottom-2 -right-6 w-52" />
+
+                <div className="relative flex h-full flex-col items-start">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10 text-accent shadow-[0_0_30px_rgba(50,213,131,0.1)] transition-transform duration-500 group-hover:rotate-3 group-hover:scale-110">
+                    <Icon className="h-7 w-7" />
+                  </div>
+                  <h3 className="mt-5 font-display text-xl font-semibold text-white">
+                    {card.title}
+                  </h3>
+                  <p className="mt-3 text-sm leading-[1.6] text-slate-400">
+                    {card.copy}
+                  </p>
+                  <ul className="mt-auto w-full space-y-2.5 border-t border-accent/10 pt-5">
+                    {card.points.map((point) => {
+                      const PointIcon = point.icon;
+                      return (
+                        <li
+                          key={point.label}
+                          className="flex items-center gap-2.5 text-xs font-medium uppercase tracking-[0.14em] text-slate-300"
+                        >
+                          <span className="flex h-6 w-6 items-center justify-center rounded-md border border-accent/10 bg-accent/5">
+                            <PointIcon className="h-3.5 w-3.5 text-accent" />
+                          </span>
+                          {point.label}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </motion.div>
             );
           })}
         </div>
@@ -222,7 +278,7 @@ export default function LandingPage() {
       {/* TECHNOLOGY SECTION */}
       <section
         id="technology"
-        className="mx-auto max-w-7xl px-4 py-28 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
       >
         <motion.div
           initial={{ opacity: 0, y: 18 }}
@@ -263,35 +319,19 @@ export default function LandingPage() {
       {/* WORKFLOW SECTION */}
       <section
         id="workflow"
-        className="mx-auto max-w-7xl px-4 py-28 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
       >
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-12"
+          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+          className="rounded-[1.75rem] border border-accent/10 bg-[rgba(13,27,23,0.8)] px-6 py-12 shadow-[0_18px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl md:px-10 lg:py-14"
         >
-          <SectionLabel>Workflow</SectionLabel>
-          <SectionTitle className="mt-2">A disciplined path from capture to decision.</SectionTitle>
-        </motion.div>
-        <div className="relative px-4 py-8">
-          {/* Animated connection line */}
-          <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 hidden lg:block">
-            <div className="relative h-full w-full overflow-hidden">
-              <motion.div
-                className="h-full w-full"
-                style={{
-                  background: "linear-gradient(90deg, transparent 0%, #32d583 15%, #32d583 85%, transparent 100%)",
-                }}
-                initial={{ scaleX: 0, transformOrigin: "left" }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.5, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              />
-            </div>
+          <div className="mb-12 text-center">
+            <SectionLabel>Workflow</SectionLabel>
+            <SectionTitle className="mt-2">A disciplined path from capture to decision.</SectionTitle>
           </div>
-
           <div className="relative z-10 grid gap-6 lg:grid-cols-7">
             {workflowSteps.map((item, index) => {
               const Icon = item.icon;
@@ -302,7 +342,7 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, amount: 0.2 }}
                   transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                  className="flex flex-col items-center gap-4"
+                  className="relative flex flex-col items-center gap-4"
                 >
                   {/* Step icon circle */}
                   <motion.div
@@ -314,9 +354,9 @@ export default function LandingPage() {
 
                   {/* Connector line between circles */}
                   {index < workflowSteps.length - 1 && (
-                    <div className="hidden lg:block absolute left-[calc(50%+2.5rem)] top-8 w-[calc(100%-5rem)] h-px">
+                    <div className="hidden lg:block absolute left-[calc(50%+2.5rem)] top-8 w-[calc(100%-3.5rem)] h-px">
                       <motion.div
-                        className="h-full bg-gradient-to-r from-accent/60 to-transparent"
+                        className="h-full bg-gradient-to-r from-accent/50 via-accent/25 to-transparent"
                         initial={{ scaleX: 0, transformOrigin: "left" }}
                         whileInView={{ scaleX: 1 }}
                         viewport={{ once: true }}
@@ -338,13 +378,13 @@ export default function LandingPage() {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* CONTACT SECTION */}
       <section
         id="contact"
-        className="mx-auto max-w-7xl px-4 py-28 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
       >
         <div className="rounded-2xl border border-accent/10 bg-[rgba(13,27,23,0.8)] p-10 shadow-[0_18px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl">
           <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
@@ -404,10 +444,18 @@ export default function LandingPage() {
             <Cpu className="h-4 w-4 text-accent" /> InspectIQ AOI Platform
           </div>
           <div className="flex flex-wrap gap-4">
-            <a href="#about" className="transition-colors hover:text-white">
+            <a
+              href="#about"
+              onClick={(event) => handleAnchor(event, "#about")}
+              className="transition-colors hover:text-white"
+            >
               About
             </a>
-            <a href="#contact" className="transition-colors hover:text-white">
+            <a
+              href="#contact"
+              onClick={(event) => handleAnchor(event, "#contact")}
+              className="transition-colors hover:text-white"
+            >
               Contact
             </a>
             <a href="/login" className="transition-colors hover:text-white">

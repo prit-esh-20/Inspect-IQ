@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Search, ShieldCheck } from "lucide-react";
+import { scrollToSection } from "../../hooks/useSmoothScroll";
 
 const links = [
   { name: "Home", id: "home" },
@@ -34,14 +35,10 @@ export default function Navbar() {
   const handleNavClick = (event, targetId) => {
     event.preventDefault();
     const target = document.getElementById(targetId);
-    if (target) {
-      window.history.replaceState(null, "", `#${targetId}`);
-      if (window.scrollToSection) {
-        window.scrollToSection(target, 110);
-      } else {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
-    }
+    if (!target) return;
+    window.history.replaceState(null, "", `#${targetId}`);
+    setActiveSection(targetId);
+    scrollToSection(target, { offset: 110 });
   };
 
   return (
@@ -61,11 +58,11 @@ export default function Navbar() {
               transition={{ duration: 2, repeat: Infinity }}
             />
           </div>
-          <div className="flex flex-col">
-            <span className="font-display text-sm font-semibold uppercase tracking-[0.24em] text-white">
-              InspectIQ
+          <div className="flex flex-col justify-center">
+            <span className="font-display text-base font-bold leading-none tracking-[0.1em] text-white">
+              Inspect<span className="text-accent">IQ</span>
             </span>
-            <span className="font-mono text-[9px] uppercase tracking-[0.28em] text-slate-500">
+            <span className="mt-1 text-[10px] font-medium uppercase leading-none tracking-[0.14em] text-slate-400">
               Intelligent PCB Inspection
             </span>
           </div>

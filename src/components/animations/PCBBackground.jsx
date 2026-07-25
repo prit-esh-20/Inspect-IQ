@@ -17,14 +17,14 @@ const BLEED = 48; // oversize margin so parallax never reveals layer edges
 
 // --- geometry helpers -------------------------------------------------------
 
-function buildPath(width, height, rng) {
+function buildPath(width, height, rng, startX) {
   // Orthogonal + 45° routed polyline, like autorouted copper.
   const dirs = [
     [1, 0], [-1, 0], [0, 1], [0, -1],
     [1, 1], [1, -1], [-1, 1], [-1, -1],
   ];
   const points = [{
-    x: Math.round((rng() * width) / GRID) * GRID,
+    x: Math.round((startX ?? rng() * width) / GRID) * GRID,
     y: Math.round((rng() * height) / GRID) * GRID,
   }];
   let dir = dirs[Math.floor(rng() * 4)]; // start orthogonal
@@ -81,13 +81,24 @@ function speedFactorAt(path, dist) {
   return 0.55 + 0.6 * Math.min(nearest / 48, 1); // 0.55 at corners → 1.15 mid-straight
 }
 
+function edgeBiasedX(width, rng) {
+  // ~70% of traces originate in the outer thirds so the periphery reads
+  // dense and alive while the center stays calmer behind the hero copy.
+  const u = rng();
+  if (u < 0.7) {
+    const off = rng() * 0.34 * width;
+    return rng() < 0.5 ? off : width - off;
+  }
+  return rng() * width;
+}
+
 function makeTraces(width, height) {
   const rng = Math.random;
-  const count = Math.max(14, Math.min(30, Math.round((width * height) / 80000)));
+  const count = Math.max(18, Math.min(40, Math.round((width * height) / 60000)));
   const traces = [];
 
   for (let i = 0; i < count; i += 1) {
-    const points = buildPath(width, height, rng);
+    const points = buildPath(width, height, rng, edgeBiasedX(width, rng));
     if (!points) continue;
     const { lens, total } = measure(points);
 
@@ -453,14 +464,14 @@ export default function PCBBackground() {
 
       // dynamic entities
       pulses = [];
-      const pulseCount = Math.max(6, Math.min(12, Math.round(traces.length * 0.4)));
+      const pulseCount = Math.max(6, Math.min(15, Math.round(traces.length * 0.4)));
       for (let i = 0; i < pulseCount; i += 1) {
         const t = traces[Math.floor(Math.random() * traces.length)];
         spawnPulse(pulses, t, { dist: Math.random() * t.total });
       }
 
       packets = [];
-      const packetCount = Math.max(5, Math.min(10, Math.round(traces.length * 0.35)));
+      const packetCount = Math.max(5, Math.min(13, Math.round(traces.length * 0.35)));
       for (let i = 0; i < packetCount; i += 1) {
         const t = traces[Math.floor(Math.random() * traces.length)];
         spawnPacket(t, { dist: Math.random() * t.total });
@@ -548,7 +559,7 @@ export default function PCBBackground() {
           p.path.branches.forEach((b, bi) => {
             if (!p.spawned.has(bi) && p.dist >= b.atLen) {
               p.spawned.add(bi);
-              if (pulses.length < 26) spawnPulse(pulses, b, { isBranch: true });
+              if (pulses.length < 30) spawnPulse(pulses, b, { isBranch: true });
             }
           });
         }
@@ -592,9 +603,9 @@ export default function PCBBackground() {
 
       // 4b) AI data packets — discrete quanta riding the exact copper routes
       packetTimer += dt;
-      if (packetTimer >= nextPacketIn && packets.length < 14) {
+      if (packetTimer >= nextPacketIn && packets.length < 17) {
         packetTimer = 0;
-        nextPacketIn = 600 + Math.random() * 1600; // random spawn cadence
+        nextPacketIn = 550 + Math.random() * 1400; // random spawn cadence
         spawnPacket(traces[Math.floor(Math.random() * traces.length)]);
       }
 
@@ -608,7 +619,7 @@ export default function PCBBackground() {
           pk.path.branches.forEach((b, bi) => {
             if (!pk.spawned.has(bi) && pk.dist >= b.atLen) {
               pk.spawned.add(bi);
-              if (packets.length < 16 && Math.random() > 0.35) {
+              if (packets.length < 19 && Math.random() > 0.35) {
                 spawnPacket(b, { isBranch: true });
               }
             }
