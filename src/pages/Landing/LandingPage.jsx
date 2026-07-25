@@ -85,10 +85,10 @@ const workflowSteps = [
 
 const contactItems = [
   { label: "Guide", value: "Prof. Dr. Embedded Systems", icon: Users },
-  { label: "Department", value: "Embedded Systems & Computer Vision", icon: Building2 },
+  { label: "Department", value: "Electronics & Computer Science", icon: Building2 },
   { label: "Project Team", value: "PI-AOI Research Group", icon: GitBranch },
   { label: "Email", value: "team@inspectiq.dev", icon: Mail },
-  { label: "GitHub", value: "github.com/inspectiq", icon: ExternalLink },
+  { label: "GitHub", value: "prit-esh-20/Inspect-IQ", icon: ExternalLink },
 ];
 
 function SectionLabel({ children }) {
