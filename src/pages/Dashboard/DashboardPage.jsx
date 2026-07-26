@@ -9,15 +9,14 @@ import { useAuth } from "../../context/AuthContext";
 import { mockApi } from "../../services/mockApi";
 import { DEFECT_CHART_DATA, TREND_7_DAYS } from "../../utils/mockData";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  AreaChart, Area,
+  AreaChart, Area, ResponsiveContainer,
 } from "recharts";
 import {
-  Play, Pause, Camera, Cpu, Thermometer, HardDrive, Wifi,
-  AlertTriangle, CheckCircle, Clock, BarChart2, RefreshCw,
+  Play, Pause, Camera,
+  AlertTriangle, CheckCircle, Clock, RefreshCw,
   Search, Bell, Upload, FileText, Download, Image,
   Target, ChevronDown, Settings, LogOut, User, X,
-  CircuitBoard, Scan, Layers, GitBranch,
+  Scan, Layers, GitBranch, Info,
 } from "lucide-react";
 
 const containerVariants = {
@@ -41,7 +40,7 @@ const notifications = [
 
 const inspectionTimeline = [
   { step: "Capture", icon: Camera, done: true },
-  { step: "YOLO Detection", icon: Scan, done: true },
+  { step: "YOLO", icon: Scan, done: true },
   { step: "Grad-CAM", icon: Layers, done: true },
   { step: "X-MCCV", icon: GitBranch, done: true },
   { step: "Result", icon: CheckCircle, done: null },
@@ -58,7 +57,8 @@ export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [activeOverlay, setActiveOverlay] = useState("combined");
+  const [showGradCam, setShowGradCam] = useState(false);
+  const [showSummaryOverlay, setShowSummaryOverlay] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
   const notifRef = useRef(null);
   const userRef = useRef(null);
@@ -150,13 +150,12 @@ export default function DashboardPage() {
 
   const defectTotal = DEFECT_CHART_DATA.reduce((s, d) => s + d.count, 0);
   const worstDefect = [...DEFECT_CHART_DATA].sort((a, b) => b.count - a.count)[0];
+  const avgConfidence = 87.3;
 
   const aiMetrics = [
     { label: "YOLO", value: 94.2, color: "#32d583" },
     { label: "Grad-CAM", value: 91.8, color: "#7ce7ac" },
     { label: "X-MCCV", value: 96.5, color: "#06b6d4" },
-    { label: "Transparency", value: 88.4, color: "#a855f7" },
-    { label: "AI Conf.", value: 92.7, color: "#32d583" },
   ];
 
   const trustScore = 92.7;
@@ -172,9 +171,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <PageWrapper className="flex min-h-screen">
+    <PageWrapper className="flex h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex-1 pl-56">
+      <div className="flex-1 pl-56 h-screen overflow-y-auto overflow-x-hidden" data-lenis-prevent>
         {/* ========== TOP BAR ========== */}
         <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-accent/10 bg-primary-bg/90 px-6 backdrop-blur-xl">
           <div className={`relative flex items-center transition-all duration-300 ${searchFocused ? "w-[500px]" : "w-80"}`}>
@@ -232,10 +231,7 @@ export default function DashboardPage() {
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-primary-bg">
                   {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </span>
-                <div className="hidden text-left sm:block">
-                  <p className="text-xs font-medium text-white leading-tight">{user?.name || "User"}</p>
-                  <p className="text-[9px] text-slate-500 leading-tight">Research Engineer</p>
-                </div>
+                <span className="text-xs font-medium text-white">{user?.name || "User"}</span>
                 <ChevronDown className="h-3 w-3 text-slate-500" />
               </button>
               <AnimatePresence>
@@ -274,29 +270,14 @@ export default function DashboardPage() {
 
           {/* ---- HEADER ---- */}
           <motion.div variants={itemVariants} className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2">
-              <h1 className="font-display text-2xl font-bold tracking-tight text-white">InspectIQ Control Console</h1>
-              <p className="text-xs text-slate-500">Embedded Explainable AI PCB Inspection Platform</p>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {[
-                  { label: "YOLOv8", color: "border-accent/25 bg-accent/8 text-accent" },
-                  { label: "Grad-CAM", color: "border-secondary-accent/25 bg-secondary-accent/8 text-secondary-accent" },
-                  { label: "X-MCCV", color: "border-cyan-500/25 bg-cyan-500/8 text-cyan-400" },
-                  { label: "Edge AI", color: "border-purple-500/25 bg-purple-500/8 text-purple-400" },
-                  { label: "Raspberry Pi", color: "border-rose-500/25 bg-rose-500/8 text-rose-400" },
-                ].map((b) => (
-                  <span key={b.label} className={`inline-flex items-center gap-1 rounded-full border ${b.color} px-2.5 py-0.5 text-[9px] font-mono font-semibold`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-                    {b.label}
-                  </span>
-                ))}
-              </div>
+            <div className="space-y-1">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-white">InspectIQ</h1>
+              <p className="text-xs text-slate-500">PCB Inspection Control Console</p>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-right">
               <div className="text-right">
                 <p className="font-mono text-sm font-bold text-white">{formatTime(currentTime)}</p>
                 <p className="font-mono text-[10px] text-slate-500">{formatDate(currentTime)}</p>
-                <p className="font-mono text-[10px] text-slate-600">Last: {activeBoard?.cycleTime ? `${activeBoard.cycleTime}s ago` : "—"}</p>
               </div>
               <div className="h-10 w-px bg-accent/10" />
               <div className="flex flex-col items-end">
@@ -308,9 +289,7 @@ export default function DashboardPage() {
                   {[
                     { label: "FPS", value: stats?.today?.fps || "29.8", color: "text-accent" },
                     { label: "CPU", value: "24%", color: "text-accent" },
-                    { label: "RAM", value: "46%", color: "text-success" },
                     { label: "TEMP", value: "48°C", color: "text-warning" },
-                    { label: "CAM", value: "Online", color: "text-success" },
                   ].map((m) => (
                     <span key={m.label} className="font-mono text-[10px] text-slate-500">
                       <span className="text-slate-600">{m.label}</span>{" "}
@@ -320,6 +299,40 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+          </motion.div>
+
+          {/* ---- QUICK ACTIONS ---- */}
+          <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-3">
+            {[
+              { label: "Start Inspection", icon: Play, primary: true },
+              { label: "Upload PCB Image", icon: Upload },
+              { label: "Generate Report", icon: FileText },
+              { label: "Export CSV", icon: Download },
+              { label: "Capture Snapshot", icon: Image },
+            ].map((action) => {
+              const Icon = action.icon;
+              return action.primary ? (
+                <motion.button
+                  key={action.label}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-primary-bg shadow-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.25)]"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {action.label}
+                </motion.button>
+              ) : (
+                <motion.button
+                  key={action.label}
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="group inline-flex items-center gap-2 rounded-xl border border-accent/20 bg-white/[0.03] px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-white/80 backdrop-blur-sm transition-all duration-300 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
+                >
+                  <Icon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  {action.label}
+                </motion.button>
+              );
+            })}
           </motion.div>
 
           {/* ---- KPI CARDS ---- */}
@@ -363,87 +376,34 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* ---- STATUS STRIP ---- */}
-          <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4 rounded-xl border border-accent/[0.06] bg-[#050816]/40 px-4 py-2.5 font-mono text-[10px]">
-            {[
-              { label: "AI Engine", value: "Online", color: "text-success" },
-              { label: "Camera", value: "Connected", color: "text-success" },
-              { label: "Inference", value: `${stats?.today?.fps || "29.8"} FPS`, color: "text-accent" },
-              { label: "Current Board", value: activeBoard?.id || "—", color: "text-white" },
-              { label: "Inspection", value: isLiveRunning ? "Running" : "Paused", color: isLiveRunning ? "text-success" : "text-warning" },
-            ].map((s) => (
-              <div key={s.label} className="flex items-center gap-1.5">
-                <span className={`h-1.5 w-1.5 rounded-full ${s.color === "text-success" ? "bg-success led-slow" : s.color === "text-warning" ? "bg-warning" : "bg-accent"}`} />
-                <span className="text-slate-500">{s.label}:</span>
-                <span className={`font-semibold ${s.color}`}>{s.value}</span>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* ---- QUICK ACTIONS ---- */}
-          <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-3">
-            {[
-              { label: "Start Inspection", icon: Play, primary: true },
-              { label: "Upload PCB Image", icon: Upload },
-              { label: "Generate Report", icon: FileText },
-              { label: "Export CSV", icon: Download },
-              { label: "Capture Snapshot", icon: Image },
-            ].map((action) => {
-              const Icon = action.icon;
-              return action.primary ? (
-                <motion.button
-                  key={action.label}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-primary-bg shadow-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.25)]"
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {action.label}
-                </motion.button>
-              ) : (
-                <motion.button
-                  key={action.label}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="group inline-flex items-center gap-2 rounded-xl border border-accent/20 bg-white/[0.03] px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-white/80 backdrop-blur-sm transition-all duration-300 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
-                >
-                  <Icon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  {action.label}
-                </motion.button>
-              );
-            })}
-          </motion.div>
-
           {/* ---- MAIN GRID ---- */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
 
-            {/* ---- CAMERA PANEL (7 cols) ---- */}
-            <motion.div variants={itemVariants} className="lg:col-span-7 space-y-4">
+            {/* ---- CAMERA PANEL (8 cols) ---- */}
+            <motion.div variants={itemVariants} className="lg:col-span-8 space-y-4">
               <GlassCard className="flex flex-col" hoverLift={false}>
                 {/* Camera header */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-accent/5 pb-3">
                   <div className="flex items-center gap-2">
                     <Camera className="h-4 w-4 text-accent" />
                     <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Inspection Viewport</span>
-                    <span className="font-mono text-[9px] text-slate-600">Camera #1</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {[
-                      { id: "yolo", label: "YOLO" },
-                      { id: "gradcam", label: "Grad-CAM" },
-                      { id: "xmccv", label: "X-MCCV" },
-                      { id: "combined", label: "Combined" },
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => setActiveOverlay(t.id)}
-                        className={`rounded-md px-2 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider transition-all ${
-                          activeOverlay === t.id ? "bg-accent/15 text-accent border border-accent/30" : "text-slate-500 border border-transparent hover:text-slate-300"
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => setShowGradCam(!showGradCam)}
+                      className={`rounded-md px-2.5 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider transition-all ${
+                        showGradCam ? "bg-accent/15 text-accent border border-accent/30" : "text-slate-500 border border-transparent hover:text-slate-300"
+                      }`}
+                    >
+                      Grad-CAM
+                    </button>
+                    <button
+                      onClick={() => setShowSummaryOverlay(!showSummaryOverlay)}
+                      className="flex items-center gap-1 rounded-md border border-accent/10 px-2.5 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider text-slate-500 transition-all hover:text-slate-300"
+                    >
+                      <Info className="h-3 w-3" />
+                      Summary
+                    </button>
                     <button
                       onClick={() => setIsLiveRunning(!isLiveRunning)}
                       className={`flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[9px] font-display font-bold uppercase tracking-wider transition-all ${
@@ -456,21 +416,19 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Viewport */}
-                <div className="relative my-4 flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-accent/5 bg-black/95">
+                {/* Viewport (taller) */}
+                <div className="relative my-4 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-accent/5 bg-black/95">
                   {/* Grid */}
                   <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
 
-                  {/* Camera HUD - Top */}
+                  {/* Camera HUD - Top left */}
                   <div className="absolute left-3 top-3 z-20 flex items-center gap-3 rounded-lg bg-black/70 border border-accent/10 px-2.5 py-1.5 font-mono text-[9px] backdrop-blur-sm">
                     <span className="flex items-center gap-1.5 text-success">
                       <span className="h-1.5 w-1.5 rounded-full bg-success led-fast" />
                       LIVE
                     </span>
-                    <span className="text-slate-400">CAMERA 01</span>
-                    <span className="text-slate-500">1920×1080</span>
+                    <span className="text-slate-400">CAM 01</span>
                     <span className="text-accent">{stats?.today?.fps || "29.8"} FPS</span>
-                    <span className="text-slate-500">12 MP</span>
                   </div>
 
                   {/* PCB SVG */}
@@ -503,64 +461,61 @@ export default function DashboardPage() {
                     <text x="122" y="65" fill="#32d583" fontSize="5" fontFamily="monospace" opacity="0.4">R8</text>
                   </svg>
 
-                      <AnimatePresence>
-                        {activeBoard && (
-                          <>
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.4 }}
-                              className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
-                              style={{ left: "35%", top: "28%", width: "28%", height: "42%" }}
-                              onClick={() => handleComponentClick(components[0])}
-                            >
-                              <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">MAIN_IC 99.8%</span>
-                            </motion.div>
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.4, delay: 0.1 }}
-                              className="absolute border border-success/40 bg-success/5 rounded cursor-pointer"
-                              style={{ left: "11%", top: "14%", width: "6%", height: "13%" }}
-                              onClick={() => handleComponentClick(components[1])}
-                            >
-                              <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">C12 98.4%</span>
-                            </motion.div>
-                            {activeBoard.status === "FAIL" && activeBoard.defectCoordinates && (
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className="absolute border-2 border-danger bg-danger/10 flex flex-col justify-start rounded font-mono text-[9px] font-bold p-1 animate-pulse cursor-pointer"
-                                style={{
-                                  left: `${(activeBoard.defectCoordinates.x / 600) * 100}%`,
-                                  top: `${(activeBoard.defectCoordinates.y / 400) * 100}%`,
-                                  width: `${(activeBoard.defectCoordinates.radius * 2 / 600) * 100}%`,
-                                  height: `${(activeBoard.defectCoordinates.radius * 2 / 400) * 100}%`,
-                                }}
-                              >
-                                <span className="text-danger text-[7px]">{activeBoard.defect.toUpperCase()}</span>
-                                <span className="text-danger/80 text-[7px]">CONF: {activeBoard.confidence}%</span>
-                              </motion.div>
-                            )}
-                          </>
+                  {/* YOLO detection boxes */}
+                  <AnimatePresence>
+                    {activeBoard && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4 }}
+                          className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
+                          style={{ left: "35%", top: "28%", width: "28%", height: "42%" }}
+                          onClick={() => handleComponentClick(components[0])}
+                        >
+                          <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">U1 99.8%</span>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4, delay: 0.1 }}
+                          className="absolute border border-success/40 bg-success/5 rounded cursor-pointer"
+                          style={{ left: "11%", top: "14%", width: "6%", height: "13%" }}
+                          onClick={() => handleComponentClick(components[1])}
+                        >
+                          <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">C12 98.4%</span>
+                        </motion.div>
+                        {activeBoard.status === "FAIL" && activeBoard.defectCoordinates && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="absolute border-2 border-danger bg-danger/10 flex flex-col justify-start rounded font-mono text-[9px] font-bold p-1 animate-pulse cursor-pointer"
+                            style={{
+                              left: `${(activeBoard.defectCoordinates.x / 600) * 100}%`,
+                              top: `${(activeBoard.defectCoordinates.y / 400) * 100}%`,
+                              width: `${(activeBoard.defectCoordinates.radius * 2 / 600) * 100}%`,
+                              height: `${(activeBoard.defectCoordinates.radius * 2 / 400) * 100}%`,
+                            }}
+                          >
+                            <span className="text-danger text-[7px]">{activeBoard.defect.toUpperCase()}</span>
+                            <span className="text-danger/80 text-[7px]">CONF: {activeBoard.confidence}%</span>
+                          </motion.div>
                         )}
-                      </AnimatePresence>
+                      </>
+                    )}
+                  </AnimatePresence>
 
-                  {/* Grad-CAM overlay */}
-                  {(activeOverlay === "gradcam" || activeOverlay === "combined") && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.25 }} className="absolute inset-0 rounded-xl pointer-events-none"
+                  {/* Grad-CAM overlay (toggle) */}
+                  {showGradCam && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.25 }}
+                      className="absolute inset-0 rounded-xl pointer-events-none"
                       style={{ background: `radial-gradient(circle at ${activeBoard?.defectCoordinates?.x ? `${(activeBoard.defectCoordinates.x / 600) * 100}%` : "50%"} ${activeBoard?.defectCoordinates?.y ? `${(activeBoard.defectCoordinates.y / 400) * 100}%` : "50%"}, rgba(50,213,131,0.3) 0%, rgba(50,213,131,0.05) 40%, transparent 70%)` }}
-                    />
-                  )}
-
-                  {/* X-MCCV grid */}
-                  {(activeOverlay === "xmccv" || activeOverlay === "combined") && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.12 }} className="absolute inset-0 pointer-events-none"
-                      style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.15) 1px, transparent 1px)", backgroundSize: "60px 60px" }}
                     />
                   )}
 
@@ -571,112 +526,102 @@ export default function DashboardPage() {
                     />
                   )}
 
-                  {/* Bottom HUD */}
+                  {/* Bottom HUD - simplified */}
                   {activeBoard && (
-                    <div className="absolute bottom-2 left-2 right-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-black/80 border border-accent/15 px-3 py-1.5 font-mono text-[9px] backdrop-blur-sm">
+                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 rounded-lg bg-black/80 border border-accent/15 px-3 py-1.5 font-mono text-[9px] backdrop-blur-sm">
                       <div className="flex items-center gap-3">
                         <span className="text-slate-500">Board:</span>
                         <span className="font-bold text-white">{activeBoard.id}</span>
-                        <StatusBadge status={activeBoard.status} />
                       </div>
-                      <div className="flex items-center gap-3 text-slate-500">
-                        <span>Time: <span className="text-white">{activeBoard.cycleTime}s</span></span>
-                        <span>FPS: <span className="text-white">{stats?.today?.fps || "29.8"}</span></span>
-                        <span>Conf: <span className="text-white">{activeBoard.confidence}%</span></span>
-                        <span>CAM: <span className="text-success">#1</span></span>
+                      <div className="flex items-center gap-3">
+                        <StatusBadge status={activeBoard.status} />
+                        <span className="text-slate-500">
+                          Conf: <span className="text-white">{activeBoard.confidence}%</span>
+                        </span>
                       </div>
                     </div>
                   )}
-                </div>
-              </GlassCard>
 
-              {/* ---- INSPECTION SUMMARY / TIMELINE ---- */}
-              <GlassCard hoverLift={false}>
-                <div className="flex items-center gap-1.5 border-b border-accent/5 pb-2">
-                  <CircuitBoard className="h-4 w-4 text-accent" />
-                  <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Inspection Summary</span>
-                </div>
-                <div className="mt-3 grid grid-cols-6 gap-4">
-                  {[
-                    { label: "Total Components", value: "42" },
-                    { label: "Detected", value: "42", color: "text-success" },
-                    { label: "Missing", value: "0", color: "text-success" },
-                    { label: "Orientation Err.", value: "0", color: "text-success" },
-                    { label: "X-MCCV Verified", value: "100%", color: "text-accent" },
-                    { label: "Overall Conf.", value: `${activeBoard?.confidence || "98.5"}%`, color: "text-accent" },
-                  ].map((s) => (
-                    <div key={s.label} className="rounded-lg border border-accent/5 bg-[#050816]/40 px-3 py-2 text-center">
-                      <p className="text-[8px] font-mono text-slate-500">{s.label}</p>
-                      <p className={`font-mono text-sm font-bold ${s.color || "text-white"}`}>{s.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 flex items-center justify-between rounded-lg border border-accent/5 bg-[#050816]/40 px-4 py-2.5">
-                  {inspectionTimeline.map((step, i) => {
-                    const Icon = step.icon;
-                    return (
-                      <div key={step.step} className="flex items-center gap-2">
-                        <div className={`flex h-7 w-7 items-center justify-center rounded-full border ${step.done === null ? "border-accent/30 bg-accent/10" : step.done ? "border-success/30 bg-success/10" : "border-slate-700 bg-slate-800"}`}>
-                          <Icon className={`h-3 w-3 ${step.done === null ? "text-accent" : step.done ? "text-success" : "text-slate-500"}`} />
+                  {/* Compact Inspection Summary Overlay */}
+                  <AnimatePresence>
+                    {showSummaryOverlay && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute right-3 top-12 z-30 w-56 rounded-xl border border-accent/10 bg-black/90 p-3 backdrop-blur-xl"
+                      >
+                        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                          {[
+                            { label: "Components", value: "42" },
+                            { label: "Detected", value: "42", color: "text-success" },
+                            { label: "Missing", value: "0", color: "text-success" },
+                            { label: "Orient. Err.", value: "0", color: "text-success" },
+                            { label: "X-MCCV", value: "100%", color: "text-accent" },
+                            { label: "Confidence", value: `${activeBoard?.confidence || "98.5"}%`, color: "text-accent" },
+                          ].map((s) => (
+                            <div key={s.label} className="flex items-center justify-between border-b border-accent/[0.04] py-0.5">
+                              <span className="text-[8px] font-mono text-slate-500">{s.label}</span>
+                              <span className={`font-mono text-[9px] font-bold ${s.color || "text-white"}`}>{s.value}</span>
+                            </div>
+                          ))}
                         </div>
-                        <span className="font-mono text-[9px] text-slate-500">{step.step}</span>
-                        {i < inspectionTimeline.length - 1 && <span className="text-slate-700 text-[10px]">→</span>}
-                      </div>
-                    );
-                  })}
+                        <div className="mt-2 flex items-center justify-between border-t border-accent/10 pt-2">
+                          {inspectionTimeline.map((step, i) => {
+                            const Icon = step.icon;
+                            return (
+                              <div key={step.step} className="flex flex-col items-center gap-0.5">
+                                <div className={`flex h-5 w-5 items-center justify-center rounded-full border ${step.done === null ? "border-accent/30 bg-accent/10" : step.done ? "border-success/30 bg-success/10" : "border-slate-700 bg-slate-800"}`}>
+                                  <Icon className={`h-2.5 w-2.5 ${step.done === null ? "text-accent" : step.done ? "text-success" : "text-slate-500"}`} />
+                                </div>
+                                <span className="font-mono text-[6px] text-slate-500">{step.step}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </GlassCard>
             </motion.div>
 
-            {/* ---- RIGHT COLUMN (5 cols) ---- */}
-            <div className="flex flex-col gap-6 lg:col-span-5">
+            {/* ---- RIGHT COLUMN (4 cols) ---- */}
+            <div className="flex flex-col gap-6 lg:col-span-4">
 
-              {/* ---- DEFECT ANALYTICS ---- */}
+              {/* ---- DEFECT ANALYTICS (simplified) ---- */}
               <motion.div variants={itemVariants}>
                 <GlassCard hoverLift={false}>
-                  <div className="flex items-center justify-between border-b border-accent/5 pb-2">
-                    <div className="flex items-center gap-1.5">
-                      <BarChart2 className="h-4 w-4 text-warning" />
-                      <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Today's Defect Analytics</span>
-                    </div>
-                    <span className="font-mono text-[9px] text-slate-600 uppercase tracking-widest">{defectTotal} defects</span>
+                  <div className="flex items-center gap-1.5 border-b border-accent/5 pb-2">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Defect Analytics</span>
                   </div>
-                  <div className="mt-4 flex items-start gap-3">
-                    <div className="flex-1">
-                      <div className="h-32">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={DEFECT_CHART_DATA} layout="vertical" margin={{ left: -8, right: 8, top: 2, bottom: 2 }}>
-                            <XAxis type="number" stroke="#475569" fontSize={7} fontFamily="JetBrains Mono" tickLine={false} />
-                            <YAxis dataKey="name" type="category" stroke="#475569" fontSize={7} fontFamily="Inter" width={82} tickLine={false} />
-                            <Tooltip contentStyle={{ background: "#0B1120", border: "1px solid rgba(50,213,131,0.2)", borderRadius: "8px" }} labelStyle={{ color: "#E2E8F0", fontFamily: "Orbitron", fontSize: "9px" }} itemStyle={{ color: "#32d583", fontFamily: "JetBrains Mono", fontSize: "9px" }} formatter={(value) => [`${value} (${((value / defectTotal) * 100).toFixed(1)}%)`, "Count"]} />
-                            <Bar dataKey="count" radius={[0, 4, 4, 0]} isAnimationActive={true}>
-                              {DEFECT_CHART_DATA.map((entry, idx) => <Cell key={`cell-${idx}`} fill={entry.color} />)}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded-lg border border-accent/10 bg-[#050816]/60 px-4 py-3">
+                      <p className="text-[9px] font-mono text-slate-500">Top Defect Type</p>
+                      <p className="font-mono text-sm font-bold text-white">{worstDefect.name}</p>
                     </div>
-                    <div className="shrink-0 space-y-2">
-                      <div className="rounded-lg border border-accent/10 bg-[#050816] px-3 py-2 text-center">
-                        <p className="text-[9px] text-slate-500">Most Common</p>
-                        <p className="font-mono text-[11px] font-bold text-white">{worstDefect.name}</p>
-                        <p className="font-mono text-[10px] text-danger">{worstDefect.count} ({((worstDefect.count / defectTotal) * 100).toFixed(1)}%)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-lg border border-accent/10 bg-[#050816]/60 px-4 py-3 text-center">
+                        <p className="text-[9px] font-mono text-slate-500">Defects</p>
+                        <p className="font-mono text-lg font-bold text-danger">{defectTotal}</p>
                       </div>
-                      <div className="rounded-lg border border-accent/10 bg-[#050816] px-3 py-2 text-center">
-                        <p className="text-[9px] text-slate-500">Avg Confidence</p>
-                        <p className="font-mono text-[11px] font-bold text-accent">87.3%</p>
+                      <div className="rounded-lg border border-accent/10 bg-[#050816]/60 px-4 py-3 text-center">
+                        <p className="text-[9px] font-mono text-slate-500">Avg Confidence</p>
+                        <p className="font-mono text-lg font-bold text-accent">{avgConfidence}%</p>
                       </div>
                     </div>
                   </div>
                 </GlassCard>
               </motion.div>
 
-              {/* ---- EXPLAINABLE AI + TRUST SCORE ---- */}
+              {/* ---- EXPLAINABLE AI (4 metrics) ---- */}
               <motion.div variants={itemVariants}>
                 <GlassCard hoverLift={false}>
                   <div className="flex items-center gap-1.5 border-b border-accent/5 pb-2">
                     <Target className="h-4 w-4 text-accent" />
-                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Explainable AI Metrics</span>
+                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Explainable AI</span>
                   </div>
                   <div className="mt-4 flex items-center gap-4">
                     {/* Trust score gauge */}
@@ -698,12 +643,12 @@ export default function DashboardPage() {
                         <text x="50" y="60" textAnchor="middle" fill="#64748b" fontSize="7" fontFamily="Inter">Trust Score</text>
                       </svg>
                     </div>
-                    {/* Metrics grid */}
-                    <div className="flex-1 grid grid-cols-5 gap-2">
+                    {/* 3 small metrics */}
+                    <div className="flex-1 grid grid-cols-3 gap-2">
                       {aiMetrics.map((m) => (
                         <div key={m.label} className="flex flex-col items-center gap-1">
-                          <div className="relative flex h-12 w-full items-center justify-center">
-                            <svg className="h-12 w-full" viewBox="0 0 40 40">
+                          <div className="relative flex h-14 w-full items-center justify-center">
+                            <svg className="h-14 w-full" viewBox="0 0 40 40">
                               <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
                               <motion.circle cx="20" cy="20" r="16" fill="none" stroke={m.color} strokeWidth="3" strokeLinecap="round"
                                 strokeDasharray={`${(m.value / 100) * 100.5} 100.5`} transform="rotate(-90 20 20)"
