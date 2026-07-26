@@ -63,14 +63,14 @@ const showcaseCards = [
 ];
 
 const techStack = [
-  { name: "Python", icon: Code2, desc: "Core inference engine" },
-  { name: "YOLO", icon: Camera, desc: "Object detection" },
-  { name: "OpenCV", icon: ScanSearch, desc: "Image processing" },
-  { name: "PyTorch", icon: Layers, desc: "Deep learning framework" },
-  { name: "FastAPI", icon: Zap, desc: "REST API layer" },
-  { name: "React", icon: Box, desc: "Dashboard UI" },
-  { name: "SQLite", icon: Database, desc: "Inspection logs" },
-  { name: "Raspberry Pi", icon: Microchip, desc: "Edge hardware" },
+  { name: "Python", icon: Code2, role: "Core Language", features: ["AI Inference", "Backend Logic"], version: "v3.12", status: "Production Ready" },
+  { name: "YOLO", icon: Camera, role: "Object Detection", features: ["Real-Time Inference"], version: "v8.2", status: "Latest" },
+  { name: "OpenCV", icon: ScanSearch, role: "Computer Vision", features: ["Image Processing", "Camera I/O"], version: "v4.10", status: "Stable" },
+  { name: "PyTorch", icon: Layers, role: "Deep Learning", features: ["Neural Networks", "GPU Training"], version: "v2.x", status: "Stable" },
+  { name: "FastAPI", icon: Zap, role: "REST API", features: ["Backend Services", "WebSocket Stream"], version: "v0.115", status: "Production Ready" },
+  { name: "React", icon: Box, role: "Frontend Framework", features: ["Interactive Dashboard"], version: "v19", status: "Open Source" },
+  { name: "SQLite", icon: Database, role: "Inspection Database", features: ["Result Logging", "Local Storage"], version: "v3", status: "Embedded" },
+  { name: "Raspberry Pi", icon: Microchip, role: "Edge Deployment", features: ["Embedded Computing", "GPIO Control"], version: "Pi 5", status: "Edge Optimized" },
 ];
 
 const workflowSteps = [
@@ -266,41 +266,124 @@ export default function LandingPage() {
       {/* TECHNOLOGY SECTION */}
       <section
         id="technology"
-        className="mx-auto max-w-7xl px-4 py-14 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 py-10 md:px-8 lg:px-10"
       >
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-12"
+          className="mb-8"
         >
           <SectionLabel>Technology</SectionLabel>
-          <SectionTitle className="mt-2">Modern stack, engineering-grade execution.</SectionTitle>
+          <SectionTitle className="mt-2">Technology Stack</SectionTitle>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500">
+            Professional tools powering Explainable AI inspection.
+          </p>
         </motion.div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-          {techStack.map((tech, index) => {
-            const Icon = tech.icon;
+
+        {/* Section stats bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-accent/10 bg-[rgba(13,27,23,0.6)] px-4 py-2.5 backdrop-blur-md"
+        >
+          {[
+            { icon: Layers, label: "8 Technologies" },
+            { icon: ShieldCheck, label: "100% Open Source" },
+            { icon: Cpu, label: "Edge Optimized" },
+            { icon: CheckCircle2, label: "Production Ready" },
+          ].map((stat, i) => {
+            const StatIcon = stat.icon;
             return (
-              <motion.div
-                key={tech.name}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -6, scale: 1.02 }}
-                className="group rounded-[1.5rem] border border-accent/10 bg-[rgba(13,27,23,0.72)] p-7 transition-all duration-500 hover:border-accent/30 hover:shadow-[0_0_40px_rgba(50,213,131,0.1)]"
-              >
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-accent/15 bg-accent/5 text-accent transition-all duration-300 group-hover:bg-accent/10 group-hover:shadow-[0_0_25px_rgba(50,213,131,0.15)]">
-                  <Icon className="h-7 w-7" />
-                </div>
-                <div className="font-display text-base font-semibold uppercase tracking-[0.22em] text-white mb-1.5">
-                  {tech.name}
-                </div>
-                <div className="text-sm text-slate-500">{tech.desc}</div>
-              </motion.div>
+              <div key={stat.label} className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">
+                <StatIcon className="h-3.5 w-3.5 text-accent" />
+                {stat.label}
+              </div>
             );
           })}
+        </motion.div>
+
+        {/* PCB background detail */}
+        <div className="relative">
+          <svg
+            className="pointer-events-none absolute inset-0 w-full h-full text-accent opacity-[0.04]"
+            viewBox="0 0 800 600"
+            fill="none"
+            aria-hidden="true"
+            preserveAspectRatio="xMidYMid slice"
+          >
+            <path d="M50 50h100l20-20h120V80h80" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M600 80h60l30-30h80" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M100 300h80l30-30h100v40h60" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M550 250h60l20-20h60" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M200 450h120l30-30h80" stroke="currentColor" strokeWidth="0.8" />
+            <path d="M600 400h40l20-20h70" stroke="currentColor" strokeWidth="0.8" />
+            <circle cx="170" cy="50" r="3" fill="currentColor" />
+            <circle cx="290" cy="80" r="3" fill="currentColor" />
+            <circle cx="690" cy="50" r="3" fill="currentColor" />
+            <circle cx="210" cy="300" r="3" fill="currentColor" />
+            <circle cx="330" cy="310" r="3" fill="currentColor" />
+            <circle cx="630" cy="230" r="3" fill="currentColor" />
+            <circle cx="350" cy="450" r="3" fill="currentColor" />
+            <circle cx="660" cy="380" r="3" fill="currentColor" />
+            <rect x="50" y="530" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="0.6" />
+            <rect x="700" y="530" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="0.6" />
+            <circle cx="100" cy="560" r="4" stroke="currentColor" strokeWidth="0.6" />
+            <circle cx="680" cy="560" r="4" stroke="currentColor" strokeWidth="0.6" />
+          </svg>
+
+          <div className="relative z-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {techStack.map((tech, index) => {
+              const Icon = tech.icon;
+              return (
+                <motion.div
+                  key={tech.name}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.45, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] }}
+                  whileHover={{ y: -4, boxShadow: "0 0 30px rgba(50,213,131,0.12)" }}
+                  className="group relative flex flex-col rounded-xl border border-accent/10 bg-[rgba(13,27,23,0.72)] p-4 backdrop-blur-xl transition-all duration-250 hover:border-accent/30"
+                >
+                  {/* Status badge */}
+                  <div className="absolute right-3 top-3 rounded-full border border-accent/12 bg-accent/8 px-2 py-0.5 text-[7px] font-semibold uppercase tracking-[0.18em] text-accent/70 transition-all duration-250 group-hover:bg-accent/15 group-hover:text-accent/90" style={{ backgroundColor: "rgba(50,213,131,0.08)" }}>
+                    {tech.status}
+                  </div>
+
+                  {/* Icon row */}
+                  <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-accent/15 bg-accent/5 text-accent shadow-[0_0_18px_rgba(50,213,131,0.08)] transition-all duration-250 group-hover:bg-accent/10 group-hover:shadow-[0_0_24px_rgba(50,213,131,0.2)]">
+                    <Icon className="h-6 w-6 transition-all duration-250 group-hover:brightness-125" />
+                  </div>
+
+                  {/* Name + Role */}
+                  <div className="font-display text-sm font-semibold tracking-wide text-white">
+                    {tech.name}
+                  </div>
+                  <div className="text-[10px] text-slate-500 tracking-wide mt-0.5">
+                    {tech.role}
+                  </div>
+
+                  {/* Features list */}
+                  <div className="mt-2.5 space-y-1">
+                    {tech.features.map((f) => (
+                      <div key={f} className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                        <span className="text-accent/60">&#10003;</span>
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Bottom version row */}
+                  <div className="mt-auto pt-2.5 border-t border-accent/8 text-[9px] font-mono text-slate-600 tracking-wide">
+                    {tech.version}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -369,184 +452,270 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* PROJECT INFORMATION SECTION */}
+      {/* READY TO DEPLOY SECTION */}
       <section
         id="contact"
-        className="mx-auto max-w-7xl px-4 pt-14 pb-8 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 pt-8 pb-4 md:px-8 lg:px-10"
       >
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-start">
           {/* LEFT COLUMN */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col justify-between space-y-6"
+            className="flex flex-col justify-between space-y-5"
           >
             <div>
-              <SectionLabel>Project Information</SectionLabel>
+              <SectionLabel>Ready to Deploy</SectionLabel>
               <SectionTitle className="mt-3 leading-tight">
-                Ready to Explore InspectIQ?
+                Start Inspecting with{" "}
+                <span className="bg-gradient-to-r from-accent via-[#7ce7ac] to-accent bg-clip-text text-transparent">
+                  InspectIQ
+                </span>
               </SectionTitle>
-              <div className="mt-5 space-y-4 max-w-xl text-base leading-relaxed text-slate-400">
+              <div className="mt-6 max-w-lg text-base leading-relaxed text-slate-400">
                 <p>
-                  InspectIQ is an Embedded Explainable AI platform for Automated
-                  Optical Inspection of Printed Circuit Boards.
-                </p>
-                <p>
-                  Built using YOLOv8, X-MCCV, Grad-CAM and Raspberry Pi for
-                  intelligent, transparent, and reliable PCB quality inspection.
+                  InspectIQ delivers real-time, explainable PCB inspection
+                  powered by Computer Vision, YOLOv8, X-MCCV, and Grad-CAM —
+                  bringing transparent AI to modern electronics manufacturing.
                 </p>
               </div>
             </div>
 
             {/* CTA Buttons */}
-            <div className="pt-2 flex flex-wrap items-center gap-4">
+            <div className="pt-1 flex flex-wrap items-center gap-4">
               <Link
                 to="/dashboard"
-                className="group inline-flex items-center gap-2.5 rounded-full bg-accent px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#07110F] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(50,213,131,0.3)]"
+                className="group inline-flex items-center gap-2.5 rounded-full bg-accent px-7 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-[#07110F] transition-all duration-250 hover:-translate-y-0.5 hover:shadow-[0_0_28px_rgba(50,213,131,0.4),0_10px_24px_rgba(50,213,131,0.2)]"
               >
                 Launch Dashboard
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                <ArrowRight className="h-4 w-4 transition-transform duration-250 group-hover:translate-x-1" />
               </Link>
               <a
                 href="https://github.com/prit-esh-20/Inspect-IQ"
                 target="_blank"
                 rel="noreferrer"
-                className="group inline-flex items-center gap-2.5 rounded-full border border-accent/20 bg-accent/5 px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition-all duration-300 hover:border-accent/40 hover:bg-accent/10 hover:text-white"
+                className="group inline-flex items-center gap-2.5 rounded-full border border-accent/25 bg-accent/5 px-7 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition-all duration-250 hover:-translate-y-0.5 hover:border-accent/50 hover:bg-accent/10 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.15)]"
               >
-                View GitHub Repository
-                <ExternalLink className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                View Project Repository
+                <ExternalLink className="h-4 w-4 transition-transform duration-250 group-hover:translate-x-1" />
               </a>
             </div>
           </motion.div>
 
-          {/* RIGHT COLUMN - 2x2 GLASS GRID */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Card 1: Project */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: 0.05 }}
-              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
-              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
-            >
-              <div>
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                  <Box className="h-5 w-5" />
-                </div>
-                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
-                  Project
-                </div>
-                <div className="font-display text-lg font-bold tracking-wide text-white">
-                  InspectIQ
-                </div>
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-slate-400">
-                Embedded XAI-Based Automated Optical Inspection System
-              </p>
-            </motion.div>
+          {/* RIGHT COLUMN — 2×2 GLASS CARD GRID */}
+          <div className="grid gap-3.5 sm:grid-cols-2">
 
-            {/* Card 2: Technology Stack */}
+            {/* Card 1: PROJECT */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
-              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
+              transition={{ duration: 0.5, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
+              className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35"
             >
-              <div>
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                  <Layers className="h-5 w-5" />
+              <div className="flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
+                  <Box className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
                 </div>
-                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
-                  Technology Stack
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5 pt-2">
-                {[
-                  "YOLOv8",
-                  "OpenCV",
-                  "PyTorch",
-                  "FastAPI",
-                  "React",
-                  "Raspberry Pi",
-                ].map((tech) => (
-                  <span
-                    key={tech}
-                    className="inline-block rounded-full border border-accent/20 bg-accent/10 px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-accent cyber-glow-green transition-all duration-300 hover:border-accent/40 hover:bg-accent/20"
-                  >
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Card 3: Repository */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
-              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
-            >
-              <div>
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                  <GitBranch className="h-5 w-5" />
-                </div>
-                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
-                  Repository
-                </div>
-                <div className="font-display text-lg font-bold tracking-wide text-white">
-                  GitHub
+                <div className="min-w-0">
+                  <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
+                    Project
+                  </div>
+                  <div className="font-display text-base font-bold tracking-wide text-white leading-snug">
+                    InspectIQ
+                  </div>
                 </div>
               </div>
-              <a
-                href="https://github.com/prit-esh-20/Inspect-IQ"
-                target="_blank"
-                rel="noreferrer"
-                className="group/link inline-flex items-center gap-1.5 mt-3 text-xs text-accent transition-colors hover:text-white"
-              >
-                <span className="truncate font-mono">
-                  github.com/prit-esh-20/Inspect-IQ
+              <div className="mt-3.5 border-t border-accent/10 pt-3.5 space-y-1.5">
+                <p className="text-xs leading-relaxed text-slate-400">
+                  Explainable AI Platform
+                </p>
+                <p className="text-xs leading-relaxed text-slate-500">
+                  Automated Optical Inspection
+                </p>
+              </div>
+              <div className="mt-auto pt-3 inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent led-slow" />
+                <span className="text-[9px] font-mono text-accent/60 tracking-[0.18em] uppercase">
+                  Version 1.0
                 </span>
-                <ExternalLink className="h-3 w-3 shrink-0 transition-transform group-hover/link:translate-x-0.5" />
-              </a>
+              </div>
             </motion.div>
 
-            {/* Card 4: Contact */}
+            {/* Card 2: TECHNOLOGY STACK */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              whileHover={{ y: -4, borderColor: "rgba(50, 213, 131, 0.35)" }}
-              className="group flex flex-col justify-between rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.72)] p-6 backdrop-blur-xl transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.12)] min-h-[170px]"
+              transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
+              className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35"
             >
-              <div>
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                  <Mail className="h-5 w-5" />
+              <div className="flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
+                  <Layers className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
                 </div>
-                <div className="text-[10px] font-medium uppercase tracking-[0.28em] text-slate-500 mb-1">
-                  Contact
-                </div>
-                <div className="font-display text-lg font-bold tracking-wide text-white">
-                  Email
+                <div className="min-w-0">
+                  <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
+                    Technology Stack
+                  </div>
+                  <div className="text-[10px] text-slate-600 tracking-wide">
+                    Core AI Stack
+                  </div>
                 </div>
               </div>
-              <a
-                href="mailto:team.inspectiq@gmail.com"
-                className="group/link inline-flex items-center gap-1.5 mt-3 text-xs text-accent transition-colors hover:text-white"
+              <div className="mt-3.5 border-t border-accent/10 pt-3.5">
+                <div className="flex flex-wrap gap-2">
+                  {["YOLOv8", "OpenCV", "PyTorch", "FastAPI", "React", "Raspberry Pi"].map((tech) => (
+                    <span
+                      key={tech}
+                      className="inline-flex items-center rounded-full border border-accent/20 bg-[rgba(50,213,131,0.08)] px-2.5 py-[3px] text-[9px] font-semibold uppercase tracking-[0.14em] text-accent transition-all duration-300 hover:border-accent/45 hover:shadow-[0_0_10px_rgba(50,213,131,0.2)]"
+                      style={{ height: "20px" }}
+                    >
+                      {tech}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Card 3: REPOSITORY */}
+            <a
+              href="https://github.com/prit-esh-20/Inspect-IQ"
+              target="_blank"
+              rel="noreferrer"
+              className="block"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
+                className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35 cursor-pointer h-full"
               >
-                <span className="font-mono">team.inspectiq@gmail.com</span>
-                <ArrowRight className="h-3 w-3 shrink-0 transition-transform group-hover/link:translate-x-0.5" />
-              </a>
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
+                    <GitBranch className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
+                      Repository
+                    </div>
+                    <div className="font-display text-base font-bold tracking-wide text-white leading-snug">
+                      Inspect-IQ
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-auto pt-3.5 border-t border-accent/10 flex items-center gap-1.5 text-xs font-medium text-accent transition-all duration-300 group-hover:gap-2.5">
+                  View on GitHub
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </div>
+              </motion.div>
+            </a>
+
+            {/* Card 4: RESEARCH TEAM */}
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
+              className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35"
+            >
+              <div className="flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
+                  <Mail className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
+                    Research Team
+                  </div>
+                  <div className="font-display text-sm font-bold tracking-wide text-white leading-snug">
+                    InspectIQ Research Lab
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3.5 border-t border-accent/10 pt-3.5 space-y-2">
+                <div>
+                  <div className="text-[10px] text-slate-500 leading-relaxed">
+                    Embedded AI Systems
+                  </div>
+                  <div className="text-[10px] text-slate-600 leading-relaxed">
+                    SIES Graduate School of Technology
+                  </div>
+                  <div className="text-[10px] text-slate-600 leading-relaxed">
+                    Mumbai, India
+                  </div>
+                </div>
+                <a
+                  href="mailto:team.inspectiq@gmail.com"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-mono text-accent transition-colors duration-300 hover:text-white"
+                >
+                  team.inspectiq@gmail.com
+                </a>
+              </div>
             </motion.div>
           </div>
         </div>
+      </section>
+
+      {/* TRUST INDICATOR BADGES */}
+      <section className="mx-auto max-w-7xl px-4 pt-4 pb-6 md:px-8 lg:px-10">
+        {/* Thin glowing separator */}
+        <div className="relative w-full h-px mb-6">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
+          <motion.div
+            className="absolute top-[-1px] h-[3px] w-20 rounded-full"
+            style={{
+              background: "linear-gradient(90deg, transparent, #32d583, #7ce7ac, transparent)",
+              boxShadow: "0 0 10px 2px rgba(50,213,131,0.25)",
+            }}
+            animate={{ left: ["-5%", "105%"] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+          />
+        </div>
+
+        {/* Badges row */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-wrap justify-center gap-5"
+        >
+          {[
+            { icon: Sparkles, label: "Explainable AI" },
+            { icon: Cpu, label: "Industry 4.0" },
+            { icon: Microchip, label: "Embedded Edge Computing" },
+            { icon: ScanSearch, label: "Real-Time PCB Inspection" },
+          ].map((badge, i) => {
+            const BadgeIcon = badge.icon;
+            return (
+              <motion.div
+                key={badge.label}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.45, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
+                whileHover={{
+                  scale: 1.03,
+                  boxShadow: "0 0 22px rgba(50,213,131,0.2), 0 0 50px rgba(50,213,131,0.06)",
+                  borderColor: "rgba(50,213,131,0.45)",
+                }}
+                className="flex items-center gap-2.5 rounded-full border border-accent/12 bg-[rgba(13,27,23,0.55)] px-5 py-2.5 backdrop-blur-md transition-all duration-300 cursor-default opacity-80 hover:opacity-100"
+              >
+                <BadgeIcon className="h-4 w-4 text-accent transition-all duration-300" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  {badge.label}
+                </span>
+              </motion.div>
+            );
+          })}
+        </motion.div>
       </section>
 
       {/* PREMIUM FOOTER */}
