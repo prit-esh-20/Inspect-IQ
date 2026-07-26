@@ -38,7 +38,7 @@ export default function Navbar() {
     if (!target) return;
     window.history.replaceState(null, "", `#${targetId}`);
     setActiveSection(targetId);
-    scrollToSection(target, { offset: 110 });
+    scrollToSection(target);
   };
 
   return (
