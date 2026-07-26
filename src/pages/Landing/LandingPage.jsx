@@ -22,12 +22,17 @@ import {
   ExternalLink,
   Mail,
   ArrowRight,
+  MapPin,
+  Send,
+  Clock,
+  Building2,
 } from "lucide-react";
 import HeroPanel from "../../components/hero/HeroPanel";
 import Navbar from "../../components/layout/Navbar";
 import PageWrapper from "../../components/layout/PageWrapper";
 import Footer from "../../components/layout/Footer";
 import GlassMetricCards from "../../components/hero/GlassMetricCards";
+import InquiryForm from "../../components/contact/InquiryForm";
 
 const showcaseCards = [
   {
@@ -452,214 +457,75 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* READY TO DEPLOY SECTION */}
+      {/* CONTACT SECTION — Enterprise Inquiry */}
       <section
         id="contact"
-        className="mx-auto max-w-7xl px-4 pt-8 pb-4 md:px-8 lg:px-10"
+        className="mx-auto max-w-7xl px-4 py-12 md:px-8 lg:px-10"
       >
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-start">
-          {/* LEFT COLUMN */}
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr] lg:items-start">
+          {/* LEFT COLUMN — Info */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="flex flex-col justify-between space-y-5"
+            className="flex flex-col space-y-6"
           >
             <div>
-              <SectionLabel>Ready to Deploy</SectionLabel>
+              <SectionLabel>Get In Touch</SectionLabel>
               <SectionTitle className="mt-3 leading-tight">
-                Start Inspecting with{" "}
-                <span className="bg-gradient-to-r from-accent via-[#7ce7ac] to-accent bg-clip-text text-transparent">
-                  InspectIQ
-                </span>
+                Let's Build Smarter PCB Inspection Together
               </SectionTitle>
-              <div className="mt-6 max-w-lg text-base leading-relaxed text-slate-400">
-                <p>
-                  InspectIQ delivers real-time, explainable PCB inspection
-                  powered by Computer Vision, YOLOv8, X-MCCV, and Grad-CAM —
-                  bringing transparent AI to modern electronics manufacturing.
-                </p>
-              </div>
+              <p className="mt-5 max-w-lg text-base leading-relaxed text-slate-400">
+                Interested in Explainable AI for PCB inspection? Contact our research team to discuss the project, implementation, technical details, or collaboration opportunities.
+              </p>
             </div>
 
-            {/* CTA Buttons */}
-            <div className="pt-1 flex flex-wrap items-center gap-4">
-              <Link
-                to="/dashboard"
-                className="group inline-flex items-center gap-2.5 rounded-full bg-accent px-7 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-[#07110F] transition-all duration-250 hover:-translate-y-0.5 hover:shadow-[0_0_28px_rgba(50,213,131,0.4),0_10px_24px_rgba(50,213,131,0.2)]"
-              >
-                Launch Dashboard
-                <ArrowRight className="h-4 w-4 transition-transform duration-250 group-hover:translate-x-1" />
-              </Link>
-              <a
-                href="https://github.com/prit-esh-20/Inspect-IQ"
-                target="_blank"
-                rel="noreferrer"
-                className="group inline-flex items-center gap-2.5 rounded-full border border-accent/25 bg-accent/5 px-7 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition-all duration-250 hover:-translate-y-0.5 hover:border-accent/50 hover:bg-accent/10 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.15)]"
-              >
-                View Project Repository
-                <ExternalLink className="h-4 w-4 transition-transform duration-250 group-hover:translate-x-1" />
-              </a>
+            {/* Info Cards */}
+            <div className="space-y-3">
+              {[
+                { icon: Mail, label: "Email", value: "team.inspectiq@gmail.com", href: "mailto:team.inspectiq@gmail.com" },
+                { icon: Building2, label: "Institution", value: "SIES Graduate School of Technology" },
+                { icon: MapPin, label: "Location", value: "Mumbai, Maharashtra, India" },
+                { icon: Lightbulb, label: "Research Area", value: "Embedded AI \u00B7 Computer Vision \u00B7 Explainable AI" },
+              ].map((item, i) => {
+                const ItemIcon = item.icon;
+                return (
+                  <motion.div
+                    key={item.label}
+                    initial={{ opacity: 0, y: 12 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.1 + i * 0.05, ease: [0.16, 1, 0.3, 1] }}
+                    whileHover={{ y: -2, boxShadow: "0 0 24px rgba(50,213,131,0.12)" }}
+                    className="flex items-center gap-3.5 rounded-xl border border-accent/10 bg-[rgba(13,27,23,0.6)] px-4 py-3.5 backdrop-blur-md transition-all duration-250 hover:border-accent/30"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-accent/15 bg-accent/8 text-accent">
+                      <ItemIcon className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[9px] font-semibold uppercase tracking-[0.28em] text-slate-500">{item.label}</div>
+                      {item.href ? (
+                        <a href={item.href} className="mt-0.5 block text-sm text-white transition-colors hover:text-accent">{item.value}</a>
+                      ) : (
+                        <div className="mt-0.5 text-sm text-white">{item.value}</div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </motion.div>
 
-          {/* RIGHT COLUMN — 2×2 GLASS CARD GRID */}
-          <div className="grid gap-3.5 sm:grid-cols-2">
-
-            {/* Card 1: PROJECT */}
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: 0.05, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
-              className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35"
-            >
-              <div className="flex items-start gap-3.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
-                  <Box className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
-                    Project
-                  </div>
-                  <div className="font-display text-base font-bold tracking-wide text-white leading-snug">
-                    InspectIQ
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3.5 border-t border-accent/10 pt-3.5 space-y-1.5">
-                <p className="text-xs leading-relaxed text-slate-400">
-                  Explainable AI Platform
-                </p>
-                <p className="text-xs leading-relaxed text-slate-500">
-                  Automated Optical Inspection
-                </p>
-              </div>
-              <div className="mt-auto pt-3 inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent led-slow" />
-                <span className="text-[9px] font-mono text-accent/60 tracking-[0.18em] uppercase">
-                  Version 1.0
-                </span>
-              </div>
-            </motion.div>
-
-            {/* Card 2: TECHNOLOGY STACK */}
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
-              className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35"
-            >
-              <div className="flex items-start gap-3.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
-                  <Layers className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
-                    Technology Stack
-                  </div>
-                  <div className="text-[10px] text-slate-600 tracking-wide">
-                    Core AI Stack
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3.5 border-t border-accent/10 pt-3.5">
-                <div className="flex flex-wrap gap-2">
-                  {["YOLOv8", "OpenCV", "PyTorch", "FastAPI", "React", "Raspberry Pi"].map((tech) => (
-                    <span
-                      key={tech}
-                      className="inline-flex items-center rounded-full border border-accent/20 bg-[rgba(50,213,131,0.08)] px-2.5 py-[3px] text-[9px] font-semibold uppercase tracking-[0.14em] text-accent transition-all duration-300 hover:border-accent/45 hover:shadow-[0_0_10px_rgba(50,213,131,0.2)]"
-                      style={{ height: "20px" }}
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Card 3: REPOSITORY */}
-            <a
-              href="https://github.com/prit-esh-20/Inspect-IQ"
-              target="_blank"
-              rel="noreferrer"
-              className="block"
-            >
-              <motion.div
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-                whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
-                className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35 cursor-pointer h-full"
-              >
-                <div className="flex items-start gap-3.5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
-                    <GitBranch className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
-                      Repository
-                    </div>
-                    <div className="font-display text-base font-bold tracking-wide text-white leading-snug">
-                      Inspect-IQ
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-auto pt-3.5 border-t border-accent/10 flex items-center gap-1.5 text-xs font-medium text-accent transition-all duration-300 group-hover:gap-2.5">
-                  View on GitHub
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </div>
-              </motion.div>
-            </a>
-
-            {/* Card 4: RESEARCH TEAM */}
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              whileHover={{ y: -5, boxShadow: "0 0 32px rgba(50,213,131,0.15)" }}
-              className="group relative flex flex-col rounded-2xl border border-accent/15 bg-[rgba(13,27,23,0.75)] p-5 backdrop-blur-xl transition-all duration-300 hover:border-accent/35"
-            >
-              <div className="flex items-start gap-3.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-[0_0_16px_rgba(50,213,131,0.3)]">
-                  <Mail className="h-4.5 w-4.5" style={{ width: "1.125rem", height: "1.125rem" }} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[9.5px] font-semibold uppercase tracking-[0.3em] text-slate-500 mb-0.5">
-                    Research Team
-                  </div>
-                  <div className="font-display text-sm font-bold tracking-wide text-white leading-snug">
-                    InspectIQ Research Lab
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3.5 border-t border-accent/10 pt-3.5 space-y-2">
-                <div>
-                  <div className="text-[10px] text-slate-500 leading-relaxed">
-                    Embedded AI Systems
-                  </div>
-                  <div className="text-[10px] text-slate-600 leading-relaxed">
-                    SIES Graduate School of Technology
-                  </div>
-                  <div className="text-[10px] text-slate-600 leading-relaxed">
-                    Mumbai, India
-                  </div>
-                </div>
-                <a
-                  href="mailto:team.inspectiq@gmail.com"
-                  className="inline-flex items-center gap-1.5 text-[10px] font-mono text-accent transition-colors duration-300 hover:text-white"
-                >
-                  team.inspectiq@gmail.com
-                </a>
-              </div>
-            </motion.div>
-          </div>
+          {/* RIGHT COLUMN — Inquiry Form */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <InquiryForm />
+          </motion.div>
         </div>
       </section>
 
