@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, 
   Camera, 
@@ -9,10 +9,19 @@ import {
   Cpu, 
   Thermometer, 
   HardDrive,
-  Activity
+  Activity,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Live Inspection", path: "/inspection", icon: Camera },
@@ -25,6 +34,28 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-secondary-bg/80 border-r border-accent/10 flex flex-col h-screen fixed left-0 top-0 z-40 backdrop-blur-md">
       
+      {/* User Avatar */}
+      {user && (
+        <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-primary-bg shadow-[0_0_14px_rgba(50,213,131,0.25)] ring-2 ring-accent/20">
+              {user.name.charAt(0).toUpperCase()}
+            </span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium text-white leading-tight truncate">{user.name}</span>
+              <span className="text-[10px] text-slate-500 leading-tight truncate">{user.email}</span>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-danger"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header Info */}
       <div className="p-6 border-b border-accent/10">
         <div className="flex items-center gap-2 mb-3">

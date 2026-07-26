@@ -31,13 +31,8 @@ export default function HeroPanel() {
   const [cueDimmed, setCueDimmed] = useState(false);
   const cueIntroDelay = useRef(1.4);
 
-  const handleDashboardClick = (event) => {
-    event.preventDefault();
-    if (isAuthenticated) {
-      navigate("/dashboard");
-    } else {
-      navigate("/login");
-    }
+  const handleDashboardClick = () => {
+    navigate(isAuthenticated ? "/dashboard" : "/login");
   };
 
   const handleAnchor = (event, selector) => {
@@ -126,20 +121,19 @@ export default function HeroPanel() {
 
       {/* CTAs — slide in from opposite sides */}
       <div className="mt-10 flex flex-wrap items-center justify-center gap-8">
-        <motion.a
-          href={isAuthenticated ? "/dashboard" : "/login"}
+        <motion.button
           onClick={handleDashboardClick}
           initial={{ opacity: 0, x: -32 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          className="group inline-flex items-center justify-center gap-2.5 rounded-xl bg-accent px-10 py-[1.15rem] text-xs font-semibold uppercase tracking-[0.24em] text-primary-bg transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.35)]"
+          className="group inline-flex items-center justify-center gap-2.5 rounded-xl bg-accent px-10 py-[1.15rem] text-xs font-semibold uppercase tracking-[0.24em] text-primary-bg transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.35)] cursor-pointer"
         >
           <Play className="h-4 w-4 fill-current" />
           Launch Dashboard
           <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-        </motion.a>
+        </motion.button>
         <motion.a
           href="#technology"
           onClick={(event) => handleAnchor(event, "#technology")}
