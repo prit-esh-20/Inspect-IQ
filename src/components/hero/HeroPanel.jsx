@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Play, ArrowRight, ChevronDown } from "lucide-react";
 import { scrollToSection } from "../../hooks/useSmoothScroll";
+import { useAuth } from "../../context/AuthContext";
 
 const techPills = [
   "Raspberry Pi",
@@ -24,8 +26,19 @@ const fadeUp = {
 };
 
 export default function HeroPanel() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [cueDimmed, setCueDimmed] = useState(false);
   const cueIntroDelay = useRef(1.4);
+
+  const handleDashboardClick = (event) => {
+    event.preventDefault();
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    } else {
+      navigate("/login");
+    }
+  };
 
   const handleAnchor = (event, selector) => {
     event.preventDefault();
@@ -114,7 +127,8 @@ export default function HeroPanel() {
       {/* CTAs — slide in from opposite sides */}
       <div className="mt-10 flex flex-wrap items-center justify-center gap-8">
         <motion.a
-          href="/dashboard"
+          href={isAuthenticated ? "/dashboard" : "/login"}
+          onClick={handleDashboardClick}
           initial={{ opacity: 0, x: -32 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}

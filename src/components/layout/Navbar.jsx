@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { scrollToSection } from "../../hooks/useSmoothScroll";
+import { useAuth } from "../../context/AuthContext";
 
 const links = [
   { name: "Home", id: "home" },
@@ -14,6 +15,8 @@ const links = [
 ];
 
 export default function Navbar() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [activeSection, setActiveSection] = useState("home");
 
   useEffect(() => {
@@ -100,7 +103,7 @@ export default function Navbar() {
             Login
           </Link>
           <Link
-            to="/dashboard"
+            to={isAuthenticated ? "/dashboard" : "/login"}
             className="flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[#07110F] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(50,213,131,0.28)]"
           >
             Launch Dashboard

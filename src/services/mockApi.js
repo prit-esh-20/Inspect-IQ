@@ -89,6 +89,29 @@ export const mockApi = {
     return { ...settingsState };
   },
 
+  // Mock authentication — swap with real API call when backend is ready
+  login: async (email, password) => {
+    await delay(600);
+
+    const match =
+      email.toLowerCase() === "user@inspectiq.xai" && password === "user123"
+        ? { name: "User", email: "user@inspectiq.xai", role: "Engineering" }
+        : null;
+
+    if (!match) {
+      throw new Error("Invalid email or password. Please try again.");
+    }
+
+    return {
+      token: "mock-jwt-" + Date.now(),
+      user: {
+        name: match.name,
+        email: match.email,
+        role: match.role,
+      },
+    };
+  },
+
   // Generates a mock real-time inspection event for the YOLO dashboard preview
   generateLiveInspection: () => {
     const isPass = Math.random() > 0.20; // 80% pass rate in real time

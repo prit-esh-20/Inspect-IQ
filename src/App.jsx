@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
 // Animations & Canvas Backgrounds
@@ -16,8 +16,17 @@ import AnalyticsPage from "./pages/Analytics/AnalyticsPage";
 import SettingsPage from "./pages/Settings/SettingsPage";
 import LoginPage from "./pages/Login/LoginPage";
 
+// Auth
+import { AuthProvider, useAuth } from "./context/AuthContext";
+
 // Hooks
 import useSmoothScroll from "./hooks/useSmoothScroll";
+
+function ProtectedRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return children;
+}
 
 // Inner shell — only mounts once isLoaded=true, so Lenis
 // initializes when there is actual scrollable content in the DOM.
@@ -34,15 +43,23 @@ function AppShell() {
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/inspection" element={<LiveInspectionPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/inspection" element={<ProtectedRoute><LiveInspectionPage /></ProtectedRoute>} />
+          <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         </Routes>
       </AnimatePresence>
     </div>
+  );
+}
+
+function AppShellWithAuth() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }
 
@@ -55,7 +72,7 @@ export default function App() {
       <LoadingScreen onFinish={() => setIsLoaded(true)} />
 
       {/* Main app shell — mounts once loader signals completion */}
-      {isLoaded && <AppShell />}
+      {isLoaded && <AppShellWithAuth />}
     </>
   );
 }

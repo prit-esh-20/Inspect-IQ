@@ -14,22 +14,28 @@ import {
   CheckCircle,
 } from "lucide-react";
 import PageWrapper from "../../components/layout/PageWrapper";
+import { mockApi } from "../../services/mockApi";
+import { useAuth } from "../../context/AuthContext";
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [phase, setPhase] = useState("idle");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [error, setError] = useState("");
   const [ripple, setRipple] = useState(null);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const cardRef = useRef(null);
 
   const isSubmitting = phase !== "idle";
+
+  const clearError = () => setError("");
 
   const handleMouseMove = useCallback(
     (e) => {
@@ -57,9 +63,19 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
 
+    setError("");
     setPhase("authenticating");
-    await delay(600);
 
+    let result;
+    try {
+      result = await mockApi.login(email.trim(), password);
+    } catch (err) {
+      setError(err.message);
+      setPhase("idle");
+      return;
+    }
+
+    authLogin(result.user, result.token);
     setPhase("success");
     await delay(600);
 
@@ -205,37 +221,52 @@ export default function LoginPage() {
                   transition={{ duration: 0.25 }}
                   className="mt-8 space-y-4"
                 >
+                  {/* Error banner */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-2xl border border-danger/20 bg-danger/[0.06] px-4 py-2.5 text-xs text-danger"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
+
                   {/* Email */}
                   <div className="group relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 transition-colors group-focus-within:text-accent">
-                      <Mail className="h-4 w-4" />
+                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-accent/20 bg-primary-bg/70 shadow-[0_0_8px_rgba(50,213,131,0.12)] transition-all duration-300 group-focus-within:border-accent/40 group-focus-within:shadow-[0_0_12px_rgba(50,213,131,0.25)]">
+                        <Mail className="h-3.5 w-3.5 text-accent" />
+                      </span>
                     </span>
                     <input
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); clearError(); }}
                       placeholder="Email address"
-                      className="w-full rounded-2xl border border-white/[0.07] bg-secondary-bg/70 py-3.5 pl-11 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all duration-300 focus:border-accent/30 focus:ring-2 focus:ring-accent/15 backdrop-blur-sm"
+                      className="w-full rounded-2xl border border-white/[0.07] bg-secondary-bg/70 py-3.5 pl-12 pr-4 text-sm text-white placeholder:text-slate-500 outline-none transition-all duration-300 focus:border-accent/30 focus:ring-2 focus:ring-accent/15 backdrop-blur-sm"
                     />
                   </div>
 
                   {/* Password */}
                   <div className="group relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-500 transition-colors group-focus-within:text-accent">
-                      <Lock className="h-4 w-4" />
+                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-accent/20 bg-primary-bg/70 shadow-[0_0_8px_rgba(50,213,131,0.12)] transition-all duration-300 group-focus-within:border-accent/40 group-focus-within:shadow-[0_0_12px_rgba(50,213,131,0.25)]">
+                        <Lock className="h-3.5 w-3.5 text-accent" />
+                      </span>
                     </span>
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => { setPassword(e.target.value); clearError(); }}
                       placeholder="Password"
-                      className="w-full rounded-2xl border border-white/[0.07] bg-secondary-bg/70 py-3.5 pl-11 pr-11 text-sm text-white placeholder:text-slate-500 outline-none transition-all duration-300 focus:border-accent/30 focus:ring-2 focus:ring-accent/15 backdrop-blur-sm"
+                      className="w-full rounded-2xl border border-white/[0.07] bg-secondary-bg/70 py-3.5 pl-12 pr-11 text-sm text-white placeholder:text-slate-500 outline-none transition-all duration-300 focus:border-accent/30 focus:ring-2 focus:ring-accent/15 backdrop-blur-sm"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((p) => !p)}
                       tabIndex={-1}
-                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 transition-colors hover:text-slate-300"
+                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 transition-colors hover:text-slate-200"
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
