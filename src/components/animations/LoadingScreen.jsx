@@ -73,7 +73,7 @@ export default function LoadingScreen({ onFinish }) {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, filter: "blur(10px)" }}
           transition={{ duration: 0.6, ease: "easeInOut" }}
-          className="fixed inset-0 z-9999 flex h-full w-full flex-col items-center justify-center bg-[#050816] p-6 cyber-grid"
+          className="fixed inset-0 z-9999 flex h-full w-full flex-col items-center justify-center bg-primary-bg p-6"
         >
           {/* Logo Module */}
           <div className="relative mb-12 flex flex-col items-center">
