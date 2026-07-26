@@ -62,6 +62,24 @@ function SelectField({ value, onChange, error, label }) {
     }
   }, [focusedIndex, open]);
 
+  useEffect(() => {
+    const list = listRef.current;
+    if (!open || !list) return;
+    const scrollable = list.querySelector(".dropdown-scroll");
+    if (!scrollable) return;
+    const handler = (e) => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollable;
+      const atTop = scrollTop === 0;
+      const atBottom = scrollTop + clientHeight >= scrollHeight;
+      if ((atTop && e.deltaY < 0) || (atBottom && e.deltaY > 0)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    scrollable.addEventListener("wheel", handler, { passive: false });
+    return () => scrollable.removeEventListener("wheel", handler);
+  }, [open]);
+
   const handleKeyDown = (e) => {
     if (!open) {
       if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
@@ -141,7 +159,7 @@ function SelectField({ value, onChange, error, label }) {
             style={{ transformOrigin: "top" }}
             className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border border-accent/15 bg-[rgba(13,27,23,0.95)] backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.4)]"
           >
-            <div className="max-h-48 overflow-y-auto py-1 scrollbar-thin">
+            <div className="dropdown-scroll max-h-48 overflow-y-auto py-1 scrollbar-thin">
               {subjects.map((s, i) => {
                 const isSelected = s.value === value;
                 const isFocused = i === focusedIndex;

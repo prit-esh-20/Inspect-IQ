@@ -531,19 +531,8 @@ export default function LandingPage() {
 
       {/* TRUST INDICATOR BADGES */}
       <section className="mx-auto max-w-7xl px-4 pt-4 pb-6 md:px-8 lg:px-10">
-        {/* Thin glowing separator */}
-        <div className="relative w-full h-px mb-6">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
-          <motion.div
-            className="absolute top-[-1px] h-[3px] w-20 rounded-full"
-            style={{
-              background: "linear-gradient(90deg, transparent, #32d583, #7ce7ac, transparent)",
-              boxShadow: "0 0 10px 2px rgba(50,213,131,0.25)",
-            }}
-            animate={{ left: ["-5%", "105%"] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-          />
-        </div>
+        {/* Subtle separator */}
+        <div className="w-full h-px mb-6 bg-gradient-to-r from-transparent via-accent/8 to-transparent" />
 
         {/* Badges row */}
         <motion.div
