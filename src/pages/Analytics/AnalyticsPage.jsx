@@ -32,6 +32,71 @@ import {
   AlertOctagon 
 } from "lucide-react";
 
+// ── Shared dark-theme chart tooltip ─────────────────────────────────────
+function ChartTooltip({ active, payload, label, suffix = "" }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div
+      className="tooltip-pop pointer-events-none rounded-xl border px-4 py-2.5 font-mono"
+      style={{
+        background: "#08140F",
+        border: "1px solid rgba(31,227,138,0.25)",
+        borderRadius: 12,
+        boxShadow:
+          "0 0 24px rgba(31,227,138,0.12), 0 0 48px rgba(31,227,138,0.06), 0 12px 32px rgba(0,0,0,0.5)",
+      }}
+    >
+      <p
+        className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.2em]"
+        style={{ color: "#7ce7ac" }}
+      >
+        {label}
+      </p>
+      <div className="space-y-1">
+        {payload.map((entry, i) => {
+          const color = entry.color || entry.payload?.color || "#32d583";
+          return (
+            <div key={i} className="flex items-center gap-2 text-[10px]">
+              <span
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{ background: color, boxShadow: `0 0 6px ${color}` }}
+              />
+              <span className="uppercase tracking-wider text-slate-400">
+                {entry.name}
+              </span>
+              <span className="ml-3 pl-1 font-bold text-white">
+                {entry.value}
+                {suffix}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Hovered bar: brighten ~15% + scale 1.02x ────────────────────────────
+const ActiveBar = (props) => {
+  const { x, y, width, height, fill } = props;
+  return (
+    <rect
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      rx={4}
+      fill={fill}
+      style={{
+        filter: "brightness(1.15)",
+        transform: "scaleY(1.02)",
+        transformOrigin: "50% 100%",
+        transition: "transform 150ms ease-out, filter 150ms ease-out",
+      }}
+    />
+  );
+};
+
 export default function AnalyticsPage() {
   
   // Data for Pass/Fail Pie
@@ -88,8 +153,8 @@ export default function AnalyticsPage() {
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ background: "#0B1120", borderColor: "rgba(0,229,255,0.2)", borderRadius: "8px" }}
-                    itemStyle={{ fontFamily: "JetBrains Mono", fontSize: "10px" }}
+                    content={<ChartTooltip suffix="%" />}
+                    cursor={false}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -126,12 +191,15 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,229,255,0.02)" />
                   <XAxis dataKey="name" stroke="#475569" fontSize={8} fontFamily="Orbitron" tickLine={false} />
                   <YAxis stroke="#475569" fontSize={8} fontFamily="JetBrains Mono" tickLine={false} />
-                  <Tooltip 
-                    contentStyle={{ background: "#0B1120", borderColor: "rgba(0,229,255,0.2)", borderRadius: "8px" }}
-                    labelStyle={{ color: "#E2E8F0", fontFamily: "Orbitron", fontSize: "10px" }}
-                    itemStyle={{ color: "#00E5FF", fontFamily: "JetBrains Mono", fontSize: "10px" }}
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={false}
                   />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  <Bar
+                    dataKey="count"
+                    radius={[4, 4, 0, 0]}
+                    activeBar={<ActiveBar />}
+                  >
                     {DEFECT_CHART_DATA.map((entry, idx) => (
                       <Cell key={`cell-${idx}`} fill={entry.color} />
                     ))}
@@ -169,14 +237,18 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,229,255,0.02)" />
                   <XAxis dataKey="hour" stroke="#475569" fontSize={8} fontFamily="JetBrains Mono" />
                   <YAxis stroke="#475569" fontSize={8} fontFamily="JetBrains Mono" />
-                  <Tooltip 
-                    contentStyle={{ background: "#0B1120", borderColor: "rgba(0,229,255,0.2)", borderRadius: "8px" }}
-                    labelStyle={{ color: "#E2E8F0", fontFamily: "Orbitron", fontSize: "10px" }}
-                    itemStyle={{ fontFamily: "JetBrains Mono", fontSize: "10px" }}
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={{ stroke: "rgba(31,227,138,0.12)", strokeDasharray: "4 4" }}
                   />
-                  <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: "10px", fontFamily: "Orbitron", color: "#94A3B8" }} />
-                  <Area name="TOTAL INSPECTED" type="monotone" dataKey="inspected" stroke="#00E5FF" fillOpacity={1} fill="url(#colorInspected)" strokeWidth={2} />
-                  <Area name="PASSED UNITS" type="monotone" dataKey="pass" stroke="#00FF9C" fillOpacity={1} fill="url(#colorPass)" strokeWidth={1.5} />
+                  <Legend
+                    verticalAlign="top"
+                    height={36}
+                    iconType="plainline"
+                    wrapperStyle={{ fontSize: "10px", fontFamily: "Orbitron", color: "#94A3B8" }}
+                  />
+                  <Area name="TOTAL INSPECTED" type="monotone" dataKey="inspected" stroke="#00E5FF" fillOpacity={1} fill="url(#colorInspected)" strokeWidth={2} activeDot={{ r: 4, fill: "#00E5FF", stroke: "#08140F", strokeWidth: 2 }} />
+                  <Area name="PASSED UNITS" type="monotone" dataKey="pass" stroke="#00FF9C" fillOpacity={1} fill="url(#colorPass)" strokeWidth={1.5} activeDot={{ r: 4, fill: "#00FF9C", stroke: "#08140F", strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -197,12 +269,11 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,229,255,0.02)" />
                   <XAxis dataKey="day" stroke="#475569" fontSize={8} fontFamily="Orbitron" />
                   <YAxis stroke="#475569" fontSize={8} fontFamily="JetBrains Mono" domain={[90, 100]} />
-                  <Tooltip 
-                    contentStyle={{ background: "#0B1120", borderColor: "rgba(0,229,255,0.2)", borderRadius: "8px" }}
-                    labelStyle={{ color: "#E2E8F0", fontFamily: "Orbitron", fontSize: "10px" }}
-                    itemStyle={{ color: "#00FF9C", fontFamily: "JetBrains Mono", fontSize: "10px" }}
+                  <Tooltip
+                    content={<ChartTooltip suffix="%" />}
+                    cursor={{ stroke: "rgba(31,227,138,0.12)", strokeDasharray: "4 4" }}
                   />
-                  <Line name="Pass Rate (%)" type="monotone" dataKey="passRate" stroke="#00FF9C" strokeWidth={2} activeDot={{ r: 6 }} />
+                  <Line name="Pass Rate (%)" type="monotone" dataKey="passRate" stroke="#00FF9C" strokeWidth={2} activeDot={{ r: 4, fill: "#00FF9C", stroke: "#08140F", strokeWidth: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -223,12 +294,11 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,229,255,0.02)" />
                   <XAxis dataKey="day" stroke="#475569" fontSize={8} fontFamily="Orbitron" />
                   <YAxis stroke="#475569" fontSize={8} fontFamily="JetBrains Mono" />
-                  <Tooltip 
-                    contentStyle={{ background: "#0B1120", borderColor: "rgba(0,229,255,0.2)", borderRadius: "8px" }}
-                    labelStyle={{ color: "#E2E8F0", fontFamily: "Orbitron", fontSize: "10px" }}
-                    itemStyle={{ color: "#00E5FF", fontFamily: "JetBrains Mono", fontSize: "10px" }}
+                  <Tooltip
+                    content={<ChartTooltip suffix="s" />}
+                    cursor={{ stroke: "rgba(31,227,138,0.12)", strokeDasharray: "4 4" }}
                   />
-                  <Line name="Avg Cycle Time (s)" type="monotone" dataKey="avgTime" stroke="#00E5FF" strokeWidth={2} activeDot={{ r: 6 }} />
+                  <Line name="Avg Cycle Time (s)" type="monotone" dataKey="avgTime" stroke="#00E5FF" strokeWidth={2} activeDot={{ r: 4, fill: "#00E5FF", stroke: "#08140F", strokeWidth: 2 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
