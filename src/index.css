@@ -230,6 +230,27 @@ html.lenis {
   animation: tooltip-pop 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Skeleton shimmer for loading states */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(18, 35, 30, 0.55) 25%,
+    rgba(50, 213, 131, 0.09) 50%,
+    rgba(18, 35, 30, 0.55) 75%
+  );
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s infinite linear;
+}
+
 .lenis-smooth [data-lenis-prevent] {
   overscroll-behavior: contain;
 }
