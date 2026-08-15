@@ -823,7 +823,7 @@ export default function PCBBackground() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10 h-full w-full bg-[#07110F]"
+      className="pointer-events-none fixed inset-0 -z-10 h-full w-full bg-primary-bg"
     />
   );
 }

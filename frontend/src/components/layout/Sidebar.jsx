@@ -11,10 +11,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Cpu,
-  Thermometer,
-  Wifi,
-  Clock,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -25,13 +21,6 @@ const navItems = [
   { name: "Quality Reports", path: "/reports", icon: FileText, badge: 3 },
   { name: "Analytics", path: "/analytics", icon: LineChart, badge: "NEW" },
   { name: "System Settings", path: "/settings", icon: Settings, badge: null },
-];
-
-const telemetry = [
-  { label: "CPU", value: "24.5%", icon: Cpu, color: "text-accent", barColor: "bg-accent", width: "24.5%" },
-  { label: "Temperature", value: "48.2°C", icon: Thermometer, color: "text-warning", barColor: "bg-warning", width: "60%" },
-  { label: "Camera", value: "Connected", icon: Wifi, color: "text-success", barColor: "bg-success", width: "100%" },
-  { label: "Latency", value: "12.4ms", icon: Clock, color: "text-accent", barColor: "bg-accent", width: "34%" },
 ];
 
 export default function Sidebar() {
@@ -135,38 +124,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      {/* Hardware Telemetry */}
-      {!collapsed && (
-        <div className="border-t border-accent/10 px-4 py-3">
-          <div className="rounded-xl border border-accent/[0.06] bg-[#050816]/60 p-3">
-            <div className="mb-2 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-success led-slow" />
-              <span className="font-display text-[9px] font-bold uppercase tracking-wider text-slate-500">
-                Telemetry
-              </span>
-            </div>
-            <div className="space-y-2">
-              {telemetry.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div key={item.label} className="space-y-0.5">
-                    <div className="flex items-center justify-between font-mono text-[9px] text-slate-500">
-                      <span className={`flex items-center gap-1 ${item.color}`}>
-                        <Icon className="h-2.5 w-2.5" /> {item.label}
-                      </span>
-                      <span className="text-slate-400">{item.value}</span>
-                    </div>
-                    <div className="h-0.5 overflow-hidden rounded-full bg-slate-900">
-                      <div className={`h-full ${item.barColor}`} style={{ width: item.width }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Logout */}
       {!collapsed && (

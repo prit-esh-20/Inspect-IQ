@@ -4,18 +4,16 @@ import Sidebar from "../../components/layout/Sidebar";
 import PageWrapper from "../../components/layout/PageWrapper";
 import GlassCard from "../../components/cards/GlassCard";
 import StatusBadge from "../../components/common/StatusBadge";
-import AnimatedNumber from "../../components/common/AnimatedNumber";
 import { useAuth } from "../../context/AuthContext";
 import { mockApi } from "../../services/mockApi";
-import { DEFECT_CHART_DATA, TREND_7_DAYS } from "../../utils/mockData";
+import { TREND_7_DAYS } from "../../utils/mockData";
 import {
   AreaChart, Area, ResponsiveContainer,
 } from "recharts";
 import {
   Play, Pause, Camera,
-  AlertTriangle, CheckCircle, Clock, RefreshCw,
-  Search, Bell, Upload, FileText, Download, Image,
-  Target, ChevronDown, Settings, LogOut, User, X,
+  AlertTriangle, CheckCircle, Clock, Bell, Upload, FileText, Download, Image,
+  Search, ChevronDown, Settings, LogOut, User, X,
   Scan, Layers, GitBranch, Info,
 } from "lucide-react";
 
@@ -49,7 +47,6 @@ const inspectionTimeline = [
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState(null);
-  const [recentRuns, setRecentRuns] = useState([]);
   const [activeBoard, setActiveBoard] = useState(null);
   const [isLiveRunning, setIsLiveRunning] = useState(true);
   const [scanProgress, setScanProgress] = useState(0);
@@ -71,7 +68,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     mockApi.getStatistics().then((res) => setStats(res));
-    mockApi.getLiveActivities().then((res) => setRecentRuns(res));
     setActiveBoard(mockApi.generateLiveInspection());
   }, []);
 
@@ -88,36 +84,6 @@ export default function DashboardPage() {
         if (curStep >= steps) {
           clearInterval(scanTimer);
           setActiveBoard(nextBoard);
-          setStats((prev) => {
-            if (!prev) return prev;
-            const isPass = nextBoard.status === "PASS";
-            const newInspected = prev.today.inspected + 1;
-            const newPass = prev.today.pass + (isPass ? 1 : 0);
-            const newFail = prev.today.fail + (isPass ? 0 : 1);
-            return {
-              ...prev,
-              today: {
-                ...prev.today,
-                inspected: newInspected,
-                pass: newPass,
-                fail: newFail,
-                passRate: (newPass / newInspected) * 100,
-                avgCycleTime: prev.today.avgCycleTime * 0.9 + parseFloat(nextBoard.cycleTime) * 0.1,
-              },
-            };
-          });
-          setRecentRuns((prev) => [
-            {
-              id: nextBoard.id,
-              time: "Just now",
-              model: nextBoard.model,
-              status: nextBoard.status,
-              defect: nextBoard.defect,
-              cycleTime: nextBoard.cycleTime,
-              operator: nextBoard.operator,
-            },
-            ...prev.slice(0, 4),
-          ]);
         }
       }, 70);
       return () => clearInterval(scanTimer);
@@ -147,18 +113,6 @@ export default function DashboardPage() {
 
   const formatTime = (d) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const formatDate = (d) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-
-  const defectTotal = DEFECT_CHART_DATA.reduce((s, d) => s + d.count, 0);
-  const worstDefect = [...DEFECT_CHART_DATA].sort((a, b) => b.count - a.count)[0];
-  const avgConfidence = 87.3;
-
-  const aiMetrics = [
-    { label: "YOLO", value: 94.2, color: "#32d583" },
-    { label: "Grad-CAM", value: 91.8, color: "#7ce7ac" },
-    { label: "X-MCCV", value: 96.5, color: "#06b6d4" },
-  ];
-
-  const trustScore = 92.7;
 
   const components = [
     { name: "U1 (Main IC)", status: "PASS", confidence: 99.8, reason: "All pins detected, orientation correct", presence: true, position: true, orientation: true, count: true },
@@ -335,53 +289,51 @@ export default function DashboardPage() {
             })}
           </motion.div>
 
-          {/* ---- KPI CARDS ---- */}
-          {stats && (
-            <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { title: "Boards Inspected Today", value: stats.today.inspected, icon: Camera, trend: "+1.8%", up: true, sparkColor: "#32d583" },
-                { title: "Pass Rate", value: stats.today.passRate, decimals: 1, suffix: "%", icon: CheckCircle, trend: "+2.1%", up: true, sparkColor: "#32d583" },
-                { title: "Failed Boards", value: stats.today.fail, icon: AlertTriangle, trend: "-4.2%", up: false, sparkColor: "#ff4d6d" },
-                { title: "Avg Inspection Time", value: stats.today.avgCycleTime, decimals: 2, suffix: "s", icon: Clock, trend: "-1.5%", up: true, sparkColor: "#32d583" },
-              ].map((card) => (
-                <GlassCard key={card.title} className="group relative overflow-hidden">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">{card.title}</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="font-mono text-3xl font-extrabold text-white">
-                          <AnimatedNumber end={card.value} decimals={card.decimals || 0} duration={1.8} />
-                        </span>
-                        {card.suffix && <span className="text-sm font-semibold text-accent">{card.suffix}</span>}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-accent/15 bg-accent/5 p-2.5 transition-colors duration-300 group-hover:border-accent/40 group-hover:bg-accent/10">
-                      <card.icon className="h-5 w-5 text-accent transition-transform duration-300 group-hover:scale-110" />
+          {/* ---- KPI CARDS (static values) ---- */}
+          <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { title: "Boards Inspected Today", value: 1259, icon: Camera, trend: "+1.8%", up: true, sparkColor: "#32d583" },
+              { title: "Pass Rate", value: 78, suffix: "%", icon: CheckCircle, trend: "+2.1%", up: true, sparkColor: "#32d583" },
+              { title: "Failed Boards", value: 98, icon: AlertTriangle, trend: "-4.2%", up: false, sparkColor: "#ff4d6d" },
+              { title: "Avg Inspection Time", value: 1.34, decimals: 2, suffix: "s", icon: Clock, trend: "-1.5%", up: true, sparkColor: "#32d583" },
+            ].map((card) => (
+              <GlassCard key={card.title} className="group relative overflow-hidden">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">{card.title}</span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-mono text-3xl font-extrabold text-white">
+                        {card.decimals ? card.value.toFixed(card.decimals) : card.value}
+                      </span>
+                      {card.suffix && <span className="text-sm font-semibold text-accent">{card.suffix}</span>}
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-accent/5 pt-3">
-                    <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold ${card.up ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
-                      {card.up ? "↑" : "↓"} {card.trend}
-                    </span>
-                    <div className="h-6 w-12">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={sparklineData}>
-                          <Area type="monotone" dataKey="value" stroke={card.sparkColor} fill={card.sparkColor} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
+                  <div className="rounded-lg border border-accent/15 bg-accent/5 p-2.5 transition-colors duration-300 group-hover:border-accent/40 group-hover:bg-accent/10">
+                    <card.icon className="h-5 w-5 text-accent transition-transform duration-300 group-hover:scale-110" />
                   </div>
-                </GlassCard>
-              ))}
-            </motion.div>
-          )}
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-accent/5 pt-3">
+                  <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold ${card.up ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
+                    {card.up ? "↑" : "↓"} {card.trend}
+                  </span>
+                  <div className="h-6 w-12">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={sparklineData}>
+                        <Area type="monotone" dataKey="value" stroke={card.sparkColor} fill={card.sparkColor} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </GlassCard>
+            ))}
+          </motion.div>
 
           {/* ---- MAIN GRID ---- */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="mx-auto w-full space-y-5">
 
-            {/* ---- CAMERA PANEL (8 cols) ---- */}
-            <motion.div variants={itemVariants} className="lg:col-span-8 space-y-4">
-              <GlassCard className="flex flex-col" hoverLift={false}>
+            {/* ---- CAMERA PANEL (centered) ---- */}
+            <motion.div variants={itemVariants} className="space-y-4">
+              <GlassCard className="mx-auto flex w-[min(62%,1020px)] flex-col" hoverLift={false}>
                 {/* Camera header */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-accent/5 pb-3">
                   <div className="flex items-center gap-2">
@@ -416,8 +368,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Viewport (taller) */}
-                <div className="relative my-4 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl border border-accent/5 bg-black/95">
+                {/* Viewport (camera monitor) */}
+                <div className="relative my-4 flex h-[min(55vh,580px)] w-full items-center justify-center overflow-hidden rounded-xl border border-accent/5 bg-black/95">
                   {/* Grid */}
                   <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
 
@@ -431,8 +383,8 @@ export default function DashboardPage() {
                     <span className="text-accent">{stats?.today?.fps || "29.8"} FPS</span>
                   </div>
 
-                  {/* PCB SVG */}
-                  <svg className="h-full w-full opacity-70" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* PCB SVG - contained with margins */}
+                  <svg className="absolute inset-0 m-auto max-h-[92%] max-w-[92%] opacity-70" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="30" y="20" width="540" height="360" rx="12" stroke="#32d583" strokeWidth="1.5" opacity="0.5" />
                     <circle cx="55" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
                     <circle cx="545" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
@@ -568,7 +520,7 @@ export default function DashboardPage() {
                           ))}
                         </div>
                         <div className="mt-2 flex items-center justify-between border-t border-accent/10 pt-2">
-                          {inspectionTimeline.map((step, i) => {
+                          {inspectionTimeline.map((step) => {
                             const Icon = step.icon;
                             return (
                               <div key={step.step} className="flex flex-col items-center gap-0.5">
@@ -585,86 +537,6 @@ export default function DashboardPage() {
                   </AnimatePresence>
                 </div>
               </GlassCard>
-            </motion.div>
-
-            {/* ---- RIGHT COLUMN (4 cols) ---- */}
-            <div className="flex flex-col gap-6 lg:col-span-4">
-
-              {/* ---- DEFECT ANALYTICS (simplified) ---- */}
-              <motion.div variants={itemVariants}>
-                <GlassCard hoverLift={false}>
-                  <div className="flex items-center gap-1.5 border-b border-accent/5 pb-2">
-                    <AlertTriangle className="h-4 w-4 text-warning" />
-                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Defect Analytics</span>
-                  </div>
-                  <div className="mt-4 space-y-3">
-                    <div className="rounded-lg border border-accent/10 bg-[#050816]/60 px-4 py-3">
-                      <p className="text-[9px] font-mono text-slate-500">Top Defect Type</p>
-                      <p className="font-mono text-sm font-bold text-white">{worstDefect.name}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="rounded-lg border border-accent/10 bg-[#050816]/60 px-4 py-3 text-center">
-                        <p className="text-[9px] font-mono text-slate-500">Defects</p>
-                        <p className="font-mono text-lg font-bold text-danger">{defectTotal}</p>
-                      </div>
-                      <div className="rounded-lg border border-accent/10 bg-[#050816]/60 px-4 py-3 text-center">
-                        <p className="text-[9px] font-mono text-slate-500">Avg Confidence</p>
-                        <p className="font-mono text-lg font-bold text-accent">{avgConfidence}%</p>
-                      </div>
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
-
-              {/* ---- EXPLAINABLE AI (4 metrics) ---- */}
-              <motion.div variants={itemVariants}>
-                <GlassCard hoverLift={false}>
-                  <div className="flex items-center gap-1.5 border-b border-accent/5 pb-2">
-                    <Target className="h-4 w-4 text-accent" />
-                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Explainable AI</span>
-                  </div>
-                  <div className="mt-4 flex items-center gap-4">
-                    {/* Trust score gauge */}
-                    <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
-                      <svg className="h-24 w-24" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-                        <motion.circle cx="50" cy="50" r="42" fill="none" stroke="url(#trustGradient)" strokeWidth="6" strokeLinecap="round"
-                          strokeDasharray={`${(trustScore / 100) * 263.9} 263.9`} transform="rotate(-90 50 50)"
-                          initial={{ strokeDasharray: "0 263.9" }} animate={{ strokeDasharray: `${(trustScore / 100) * 263.9} 263.9` }}
-                          transition={{ duration: 2, ease: [0.16, 1, 0.3, 1] }}
-                        />
-                        <defs>
-                          <linearGradient id="trustGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#32d583" />
-                            <stop offset="100%" stopColor="#7ce7ac" />
-                          </linearGradient>
-                        </defs>
-                        <text x="50" y="46" textAnchor="middle" fill="#32d583" fontSize="18" fontFamily="JetBrains Mono" fontWeight="bold">{trustScore}%</text>
-                        <text x="50" y="60" textAnchor="middle" fill="#64748b" fontSize="7" fontFamily="Inter">Trust Score</text>
-                      </svg>
-                    </div>
-                    {/* 3 small metrics */}
-                    <div className="flex-1 grid grid-cols-3 gap-2">
-                      {aiMetrics.map((m) => (
-                        <div key={m.label} className="flex flex-col items-center gap-1">
-                          <div className="relative flex h-14 w-full items-center justify-center">
-                            <svg className="h-14 w-full" viewBox="0 0 40 40">
-                              <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="3" />
-                              <motion.circle cx="20" cy="20" r="16" fill="none" stroke={m.color} strokeWidth="3" strokeLinecap="round"
-                                strokeDasharray={`${(m.value / 100) * 100.5} 100.5`} transform="rotate(-90 20 20)"
-                                initial={{ strokeDasharray: "0 100.5" }} animate={{ strokeDasharray: `${(m.value / 100) * 100.5} 100.5` }}
-                                transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
-                              />
-                              <text x="20" y="23" textAnchor="middle" fill={m.color} fontSize="8" fontFamily="JetBrains Mono" fontWeight="bold">{m.value}%</text>
-                            </svg>
-                          </div>
-                          <span className="text-[7px] font-mono text-slate-500 text-center leading-tight">{m.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </GlassCard>
-              </motion.div>
 
               {/* ---- COMPONENT DETAIL DRAWER ---- */}
               <AnimatePresence>
@@ -719,54 +591,7 @@ export default function DashboardPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* ---- RECENT INSPECTIONS ---- */}
-              <motion.div variants={itemVariants}>
-                <GlassCard hoverLift={false} className="flex flex-col">
-                  <div className="flex items-center justify-between border-b border-accent/5 pb-2">
-                    <div className="flex items-center gap-1.5">
-                      <RefreshCw className="h-3.5 w-3.5 text-success" />
-                      <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Live Inspection Feed</span>
-                    </div>
-                    <span className="font-mono text-[9px] text-slate-600 uppercase tracking-widest">Real-time</span>
-                  </div>
-                  <div className="mt-3 flex-1 space-y-1.5 overflow-y-auto pr-1" style={{ maxHeight: "192px" }}>
-                    <AnimatePresence initial={false}>
-                      {recentRuns.map((run, i) => (
-                        <motion.div
-                          key={run.id + i}
-                          initial={{ opacity: 0, y: -12, height: 0 }}
-                          animate={{ opacity: 1, y: 0, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                          className={`flex items-center justify-between rounded-lg border p-2.5 transition-all hover:border-accent/20 ${
-                            run.status === "FAIL" ? "border-danger/20 bg-danger/[0.03]" : run.status === "REVIEW" ? "border-warning/20 bg-warning/[0.03]" : "border-accent/5 bg-[#050816]/40"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <span className={`h-2 w-2 shrink-0 rounded-full ${run.status === "PASS" ? "bg-success led-slow" : run.status === "REVIEW" ? "bg-warning" : "bg-danger led-fast"}`} />
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-xs font-bold text-white">{run.id}</span>
-                                <span className="text-[9px] text-slate-600">{run.time}</span>
-                              </div>
-                              <p className="truncate text-[10px] text-slate-500">{run.model}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {run.defect && run.defect !== "None" && (
-                              <span className="font-mono text-[8px] text-danger font-semibold uppercase">{run.defect}</span>
-                            )}
-                            <StatusBadge status={run.status} />
-                          </div>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </GlassCard>
-              </motion.div>
-
-            </div>
+            </motion.div>
           </div>
         </motion.main>
       </div>

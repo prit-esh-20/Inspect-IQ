@@ -127,7 +127,7 @@ export default function LiveInspectionPage() {
 
         {/* Live inspection feed */}
         {activeBoard && (
-          <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-5 items-start">
 
             {/* OPTICAL OUTPUT CAPTURE - Left panel */}
             <GlassCard className="flex flex-col" hoverLift={false}>
@@ -160,7 +160,7 @@ export default function LiveInspectionPage() {
               </div>
 
               {/* Viewport Frame - dominant PCB feed */}
-              <div className="relative bg-black rounded-lg overflow-hidden border border-accent/5 my-2 w-full mx-auto flex items-center justify-center h-[250px] md:h-[320px] lg:h-[390px]">
+              <div className="relative bg-black rounded-lg overflow-hidden border border-accent/5 my-2 w-full mx-auto flex items-center justify-center h-[340px] md:h-[430px] lg:h-[530px]">
 
                 {/* Electronics Schematic background grid */}
                 <div className="absolute inset-0 cyber-grid opacity-20" />
