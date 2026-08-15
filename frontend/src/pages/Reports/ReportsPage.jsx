@@ -3,7 +3,9 @@ import Sidebar from "../../components/layout/Sidebar";
 import PageWrapper from "../../components/layout/PageWrapper";
 import GlassCard from "../../components/cards/GlassCard";
 import Button from "../../components/common/Button";
-import { toast, Toaster } from "react-hot-toast";
+import { useReports } from "../../hooks/useReports";
+import { useNotifications } from "../../context/NotificationContext";
+import { reportsApi } from "../../services/api/reportsApi";
 import { 
   FileText, 
   Download, 
@@ -18,54 +20,30 @@ import {
 export default function ReportsPage() {
   const [exportType, setExportType] = useState("SUMMARY"); // "SUMMARY" | "FULL" | "X-MCCV"
   const [modelTarget, setModelTarget] = useState("ALL");
+  const { reports, loading, error } = useReports();
+  const { notify } = useNotifications();
 
-  const reportBatches = [
-    { id: "REP-2026-07A", title: "Daily Operations Inspection Summary", date: "July 24, 2026", size: "142 KB", type: "Daily Summary", status: "COMPILED" },
-    { id: "REP-2026-07B", title: "Weekly Solder Bridge Quality Assessment", date: "July 20, 2026", size: "840 KB", type: "Weekly Audit", status: "COMPILED" },
-    { id: "REP-2026-06C", title: "Raspberry Pi Inference Performance Logs", date: "July 15, 2026", size: "1.2 MB", type: "Diagnostic Log", status: "COMPILED" },
-    { id: "REP-2026-06D", title: "STM32 Line Production Verification", date: "July 08, 2026", size: "480 KB", type: "Full Compliance Report", status: "ARCHIVED" }
-  ];
-
-  const handleExportPdf = (batchId, title) => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 2200)),
-      {
-        loading: "Running PDF compilation engine...",
-        success: <b>Report downloaded: {batchId}.pdf</b>,
-        error: <b>Export engine failure</b>
-      },
-      {
-        style: {
-          background: "#111827",
-          color: "#fff",
-          border: "1px solid rgba(0, 229, 255, 0.3)"
-        }
-      }
-    );
+  const handleExportPdf = async (batchId) => {
+    try {
+      await reportsApi.exportReport(batchId);
+      notify({ type: "success", title: "Report Exported", message: `${batchId}.pdf downloaded.` });
+    } catch {
+      notify({ type: "error", title: "Export Failed", message: "Unable to export the report. Please try again." });
+    }
   };
 
-  const handleCreateReport = () => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 2800)),
-      {
-        loading: "Querying historical DB entries and compiling Grad-CAM charts...",
-        success: <b>New PDF batch compiled successfully!</b>,
-        error: <b>Compilation failed</b>
-      },
-      {
-        style: {
-          background: "#111827",
-          color: "#fff",
-          border: "1px solid rgba(0, 255, 156, 0.3)"
-        }
-      }
-    );
+  const handleCreateReport = async () => {
+    try {
+      await reportsApi.createReport({ type: exportType, model: modelTarget });
+      notify({ type: "success", title: "Report Compiled", message: "New PDF batch compiled successfully." });
+    } catch {
+      notify({ type: "error", title: "Compilation Failed", message: "Unable to compile the report. Please try again." });
+    }
   };
 
   return (
     <PageWrapper className="flex min-h-screen pl-64 pb-8">
       <Sidebar />
-      <Toaster position="top-right" />
 
       {/* Main Container */}
       <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
@@ -184,8 +162,22 @@ export default function ReportsPage() {
 
           {/* RIGHT COLUMN: Available Reports List */}
           <div className="lg:col-span-7 space-y-4">
-            
-            {reportBatches.map((batch) => (
+
+            {loading ? (
+              <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
+                Loading reports...
+              </div>
+            ) : error ? (
+              <div className="h-64 flex flex-col items-center justify-center gap-2 font-mono text-xs text-slate-500 uppercase tracking-widest">
+                <span className="text-danger">Unable to retrieve reports.</span>
+                <span className="text-slate-600 normal-case">Please try again.</span>
+              </div>
+            ) : reports.length === 0 ? (
+              <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
+                No reports available yet.
+              </div>
+            ) : (
+              reports.map((batch) => (
               <GlassCard key={batch.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left" hoverLift={true}>
                 
                 <div className="space-y-1 flex-1">

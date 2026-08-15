@@ -33,6 +33,7 @@ export const MOCK_STATISTICS = {
     avgCycleTime: 1.34,
     systemUptime: "14h 32m",
     rpiTemp: "48.2°C",
+    cpu: "24%",
     fps: 29.8,
   },
   yesterday: {

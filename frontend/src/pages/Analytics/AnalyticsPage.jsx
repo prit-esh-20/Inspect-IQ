@@ -1,14 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "../../components/layout/Sidebar";
 import PageWrapper from "../../components/layout/PageWrapper";
 import GlassCard from "../../components/cards/GlassCard";
-import AnimatedNumber from "../../components/common/AnimatedNumber";
-import { 
-  DEFECT_CHART_DATA, 
-  HOURLY_THROUGHPUT_DATA, 
-  TREND_7_DAYS 
-} from "../../utils/mockData";
+import { useAnalytics } from "../../hooks/useAnalytics";
 import { 
   AreaChart, 
   Area, 
@@ -164,39 +159,15 @@ const ActiveBar = (props) => {
 };
 
 // ── Donut sub-stat block ─────────────────────────────────────────────────
-function DonutStat({ label, value, decimals = 1, suffix = "%", prefix = "", color, up }) {
+function DonutStat({ label, value, suffix = "%", prefix = "", color, up }) {
   return (
     <div className="flex flex-col items-center rounded-lg border border-accent/[0.06] bg-[#0d1b17]/50 px-2 py-2.5">
       <span className="font-mono text-[8px] uppercase tracking-widest text-slate-500">{label}</span>
       <span className={`mt-0.5 flex items-baseline font-mono text-sm font-bold ${color}`}>
         {up && <span className="mr-0.5 text-[9px]">▲</span>}
         {prefix}
-        <AnimatedNumber end={value} decimals={decimals} duration={1.4} delay={0.3} />
+        {value}
         {suffix}
-      </span>
-    </div>
-  );
-}
-
-// ── Live status pill (top-right of header) ───────────────────────────────
-function LiveStatus() {
-  const [seconds, setSeconds] = useState(1.5);
-  useEffect(() => {
-    const start = Date.now();
-    const t = setInterval(() => setSeconds((Date.now() - start) / 1000), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-2">
-        <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-success shadow-[0_0_8px_#32d583]" />
-        </span>
-        <span className="font-mono text-xs font-bold uppercase tracking-widest text-success">LIVE</span>
-      </div>
-      <span className="font-mono text-[9px] text-slate-500">
-        Updated {seconds.toFixed(1)} seconds ago
       </span>
     </div>
   );
@@ -222,7 +193,7 @@ function MiniKpi({ label, value, suffix, decimals, icon: Icon, valueClass, accen
       </div>
       <div className="mt-1.5 flex items-baseline gap-1">
         <span className={`font-mono text-2xl font-extrabold ${valueClass}`}>
-          <AnimatedNumber end={value} decimals={decimals || 0} duration={1.4} />
+          {decimals ? value.toFixed(decimals) : value}
         </span>
         {suffix && <span className="text-xs font-bold text-slate-400">{suffix}</span>}
       </div>
@@ -262,34 +233,46 @@ function SkeletonCard({ className = "h-[340px]" }) {
 }
 
 export default function AnalyticsPage() {
-  const [loading, setLoading] = useState(true);
+  const { data, loading, error } = useAnalytics();
   const [selectedDefect, setSelectedDefect] = useState(null);
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 900);
-    return () => clearTimeout(t);
-  }, []);
-
-  const qualitySummaryData = [
-    { name: "PASS RATE", value: 93.9, color: C.pass },
-    { name: "DEFECT RATE", value: 6.1, color: C.crit },
-  ];
-
-  const kpis = [
-    { label: "Yield Rate", value: 93.9, suffix: "%", decimals: 1, icon: Gauge, valueClass: "text-success", accent: "text-success", trend: "+1.7%", up: true },
-    { label: "Today's Defects", value: 56, icon: AlertOctagon, valueClass: "text-danger", accent: "text-danger", trend: "-4.2%", up: true },
-    { label: "Avg Confidence", value: 97.2, suffix: "%", decimals: 1, icon: ShieldCheck, valueClass: "text-accent", accent: "text-accent", trend: "+0.3%", up: true },
-    { label: "Inspection Time", value: 0.94, suffix: "s", decimals: 2, icon: Timer, valueClass: "text-cyan-400", accent: "text-cyan-400", trend: "-0.06s", up: true },
-  ];
-
   const selected = selectedDefect ? { ...selectedDefect, ...defectDetails[selectedDefect.name] } : null;
+
+  if (error && !data) {
+    return (
+      <PageWrapper className="flex min-h-screen pl-64 pb-8">
+        <Sidebar />
+        <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-6 md:p-8">
+          <div className="h-64 flex flex-col items-center justify-center gap-2 font-mono text-xs text-slate-500 uppercase tracking-widest">
+            <span className="text-danger">Unable to retrieve analytics data.</span>
+            <span className="text-slate-600 normal-case">Please try again.</span>
+          </div>
+        </main>
+      </PageWrapper>
+    );
+  }
+
+  if (!loading && (!data || !data.kpis)) {
+    return (
+      <PageWrapper className="flex min-h-screen pl-64 pb-8">
+        <Sidebar />
+        <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-6 md:p-8">
+          <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
+            No analytics data available yet.
+          </div>
+        </main>
+      </PageWrapper>
+    );
+  }
+
+  const { kpis = [], qualitySummary = [], donutStats = [], yieldRate = 0, defectChart = [], hourlyThroughput = [], trend7Days = [] } = data || {};
 
   return (
     <PageWrapper className="flex min-h-screen pl-64 pb-8">
       <Sidebar />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-6 md:p-8">
-        {/* Header Title + Live Status */}
+        {/* Header Title */}
         <div className="flex flex-col gap-4 border-b border-accent/10 pb-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-0.5 text-left">
             <h1 className="font-display text-xl font-bold uppercase tracking-wider text-white md:text-2xl">
@@ -299,7 +282,6 @@ export default function AnalyticsPage() {
               Statistical Yield and Performance Metrics
             </p>
           </div>
-          <LiveStatus />
         </div>
 
         {loading ? (
@@ -327,9 +309,15 @@ export default function AnalyticsPage() {
           >
             {/* ── KPI Summary Row ── */}
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {kpis.map((kpi, i) => (
-                <MiniKpi key={kpi.label} {...kpi} delay={0.05 + i * 0.07} />
-              ))}
+              {kpis.map((kpi, i) => {
+                const kpiMeta = [
+                  { icon: Gauge, valueClass: "text-success", accent: "text-success" },
+                  { icon: AlertOctagon, valueClass: "text-danger", accent: "text-danger" },
+                  { icon: ShieldCheck, valueClass: "text-accent", accent: "text-accent" },
+                  { icon: Timer, valueClass: "text-cyan-400", accent: "text-cyan-400" },
+                ][i] || { icon: Gauge, valueClass: "text-accent", accent: "text-accent" };
+                return <MiniKpi key={kpi.label} {...kpi} {...kpiMeta} delay={0.05 + i * 0.07} />;
+              })}
             </div>
 
             {/* ── Charts Grid ── */}
@@ -348,7 +336,7 @@ export default function AnalyticsPage() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={qualitySummaryData}
+                        data={qualitySummary}
                         cx="50%"
                         cy="50%"
                         innerRadius={52}
@@ -360,7 +348,7 @@ export default function AnalyticsPage() {
                         animationDuration={850}
                         animationEasing="ease-out"
                       >
-                        {qualitySummaryData.map((entry, index) => (
+                        {qualitySummary.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -369,7 +357,7 @@ export default function AnalyticsPage() {
                   </ResponsiveContainer>
                   <div className="absolute flex flex-col items-center">
                     <span className="font-mono text-xl font-extrabold text-white">
-                      <AnimatedNumber end={93.9} decimals={1} duration={1.6} delay={0.2} />
+                      {yieldRate}
                       <span className="text-success">%</span>
                     </span>
                     <span className="font-display text-[8px] uppercase tracking-widest text-slate-500">Yield Rate</span>
@@ -378,12 +366,18 @@ export default function AnalyticsPage() {
 
                 <div className="flex flex-col gap-2.5">
                   <div className="grid grid-cols-3 gap-2">
-                    <DonutStat label="Today's Target" value={95.0} color="text-accent" />
-                    <DonutStat label="Yesterday's Yield" value={92.2} color="text-slate-300" />
-                    <DonutStat label="Daily Improvement" value={1.7} color="text-success" up />
+                    {donutStats.map((stat, idx) => (
+                      <DonutStat
+                        key={stat.label}
+                        label={stat.label}
+                        value={stat.value}
+                        color={idx === 0 ? "text-accent" : idx === 1 ? "text-slate-300" : "text-success"}
+                        up={stat.up}
+                      />
+                    ))}
                   </div>
                   <div className="flex justify-around gap-4 font-mono text-[9px]">
-                    {qualitySummaryData.map((entry, idx) => (
+                    {qualitySummary.map((entry, idx) => (
                       <div key={idx} className="flex items-center gap-1.5">
                         <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: entry.color }} />
                         <span className="text-slate-400">
@@ -410,7 +404,7 @@ export default function AnalyticsPage() {
                 <div className="mt-4 h-60 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={DEFECT_CHART_DATA}
+                      data={defectChart}
                       margin={{ left: -14, right: 6, top: 20, bottom: 0 }}
                       barCategoryGap="30%"
                     >
@@ -430,7 +424,7 @@ export default function AnalyticsPage() {
                         activeBar={<ActiveBar />}
                         onClick={(data) => setSelectedDefect(data)}
                       >
-                        {DEFECT_CHART_DATA.map((entry, idx) => (
+                        {defectChart.map((entry, idx) => (
                           <Cell key={`cell-${idx}`} fill={BAR_COLORS[entry.name] || entry.color} />
                         ))}
                         <LabelList
@@ -459,7 +453,7 @@ export default function AnalyticsPage() {
 
                 <div className="mt-5 h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={HOURLY_THROUGHPUT_DATA} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
+                    <AreaChart data={hourlyThroughput} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
                       <defs>
                         <linearGradient id="colorInspected" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor={C.info} stopOpacity={0.2} />
@@ -524,7 +518,7 @@ export default function AnalyticsPage() {
 
                 <div className="mt-5 h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={TREND_7_DAYS} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
+                    <LineChart data={trend7Days} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,229,255,0.02)" />
                       <XAxis dataKey="day" stroke="#64748b" fontSize={9} fontFamily="Orbitron" tickLine={false} />
                       <YAxis stroke="#64748b" fontSize={9} fontFamily="JetBrains Mono" tickLine={false} domain={[90, 100]} />
@@ -557,7 +551,7 @@ export default function AnalyticsPage() {
 
                 <div className="mt-5 h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={TREND_7_DAYS} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
+                    <LineChart data={trend7Days} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,229,255,0.02)" />
                       <XAxis dataKey="day" stroke="#64748b" fontSize={9} fontFamily="Orbitron" tickLine={false} />
                       <YAxis stroke="#64748b" fontSize={9} fontFamily="JetBrains Mono" tickLine={false} />

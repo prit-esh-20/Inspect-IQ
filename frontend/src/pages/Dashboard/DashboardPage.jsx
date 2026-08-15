@@ -5,13 +5,14 @@ import PageWrapper from "../../components/layout/PageWrapper";
 import GlassCard from "../../components/cards/GlassCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
-import { mockApi } from "../../services/mockApi";
-import { TREND_7_DAYS } from "../../utils/mockData";
+import { useDashboard } from "../../hooks/useDashboard";
+import { useInspection } from "../../hooks/useInspection";
+import { TREND_7_DAYS } from "../../services/mock/mockData";
 import {
   AreaChart, Area, ResponsiveContainer,
 } from "recharts";
 import {
-  Play, Pause, Camera,
+  Play, Camera,
   AlertTriangle, CheckCircle, Clock, Bell, Upload, FileText, Download, Image,
   Search, ChevronDown, Settings, LogOut, User, X,
   Scan, Layers, GitBranch, Info,
@@ -46,10 +47,8 @@ const inspectionTimeline = [
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [activeBoard, setActiveBoard] = useState(null);
-  const [isLiveRunning, setIsLiveRunning] = useState(true);
-  const [scanProgress, setScanProgress] = useState(0);
+  const { stats } = useDashboard();
+  const { inspection } = useInspection();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -65,31 +64,6 @@ export default function DashboardPage() {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-
-  useEffect(() => {
-    mockApi.getStatistics().then((res) => setStats(res));
-    setActiveBoard(mockApi.generateLiveInspection());
-  }, []);
-
-  useEffect(() => {
-    if (!isLiveRunning) return;
-    const interval = setInterval(() => {
-      const nextBoard = mockApi.generateLiveInspection();
-      setScanProgress(0);
-      let curStep = 0;
-      const steps = 25;
-      const scanTimer = setInterval(() => {
-        curStep += 1;
-        setScanProgress((curStep / steps) * 100);
-        if (curStep >= steps) {
-          clearInterval(scanTimer);
-          setActiveBoard(nextBoard);
-        }
-      }, 70);
-      return () => clearInterval(scanTimer);
-    }, 3500);
-    return () => clearInterval(interval);
-  }, [isLiveRunning]);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -114,15 +88,18 @@ export default function DashboardPage() {
   const formatTime = (d) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const formatDate = (d) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
-  const components = [
-    { name: "U1 (Main IC)", status: "PASS", confidence: 99.8, reason: "All pins detected, orientation correct", presence: true, position: true, orientation: true, count: true },
-    { name: "C12 (Filter Cap)", status: "PASS", confidence: 98.4, reason: "Capacitance within tolerance", presence: true, position: true, orientation: true, count: true },
-    { name: "R8 (Pull-up)", status: "PASS", confidence: 97.9, reason: "Resistance value nominal", presence: true, position: true, orientation: true, count: true },
-  ];
-
-  const handleComponentClick = (comp) => {
-    setSelectedComponent(comp === selectedComponent ? null : comp);
+  const handleComponentClick = (detection) => {
+    const detail = inspection?.componentDetails?.find(
+      (c) => c.name.toLowerCase().startsWith(detection.id.toLowerCase()),
+    );
+    setSelectedComponent(detail ? { ...detail, id: detection.id } : { name: detection.label, id: detection.id });
   };
+
+  const presenceFailures = inspection?.verificationDetails?.presence?.filter((p) => p.status === "FAIL").length || 0;
+  const allChecksPass =
+    inspection?.verificationDetails?.presence?.every((p) => p.status === "PASS") &&
+    inspection?.verificationDetails?.position?.every((p) => p.status === "PASS") &&
+    inspection?.verificationDetails?.orientation?.every((p) => p.status === "PASS");
 
   return (
     <PageWrapper className="flex h-screen overflow-hidden">
@@ -241,9 +218,9 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3 mt-1">
                   {[
-                    { label: "FPS", value: stats?.today?.fps || "29.8", color: "text-accent" },
-                    { label: "CPU", value: "24%", color: "text-accent" },
-                    { label: "TEMP", value: "48°C", color: "text-warning" },
+                    { label: "FPS", value: stats ? stats.today.fps : "—", color: "text-accent" },
+                    { label: "CPU", value: stats ? stats.today.cpu : "—", color: "text-accent" },
+                    { label: "TEMP", value: stats ? stats.today.rpiTemp : "—", color: "text-warning" },
                   ].map((m) => (
                     <span key={m.label} className="font-mono text-[10px] text-slate-500">
                       <span className="text-slate-600">{m.label}</span>{" "}
@@ -289,44 +266,52 @@ export default function DashboardPage() {
             })}
           </motion.div>
 
-          {/* ---- KPI CARDS (static values) ---- */}
-          <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { title: "Boards Inspected Today", value: 1259, icon: Camera, trend: "+1.8%", up: true, sparkColor: "#32d583" },
-              { title: "Pass Rate", value: 78, suffix: "%", icon: CheckCircle, trend: "+2.1%", up: true, sparkColor: "#32d583" },
-              { title: "Failed Boards", value: 98, icon: AlertTriangle, trend: "-4.2%", up: false, sparkColor: "#ff4d6d" },
-              { title: "Avg Inspection Time", value: 1.34, decimals: 2, suffix: "s", icon: Clock, trend: "-1.5%", up: true, sparkColor: "#32d583" },
-            ].map((card) => (
-              <GlassCard key={card.title} className="group relative overflow-hidden">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">{card.title}</span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-mono text-3xl font-extrabold text-white">
-                        {card.decimals ? card.value.toFixed(card.decimals) : card.value}
-                      </span>
-                      {card.suffix && <span className="text-sm font-semibold text-accent">{card.suffix}</span>}
+          {/* ---- KPI CARDS (backend-driven) ---- */}
+          {stats ? (
+            <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { title: "Boards Inspected Today", value: stats.today.inspected, icon: Camera, trend: "+1.8%", up: true, sparkColor: "#32d583" },
+                { title: "Pass Rate", value: stats.today.passRate, suffix: "%", icon: CheckCircle, trend: "+2.1%", up: true, sparkColor: "#32d583" },
+                { title: "Failed Boards", value: stats.today.fail, icon: AlertTriangle, trend: "-4.2%", up: false, sparkColor: "#ff4d6d" },
+                { title: "Avg Inspection Time", value: stats.today.avgCycleTime, decimals: 2, suffix: "s", icon: Clock, trend: "-1.5%", up: true, sparkColor: "#32d583" },
+              ].map((card) => (
+                <GlassCard key={card.title} className="group relative overflow-hidden">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">{card.title}</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-mono text-3xl font-extrabold text-white">
+                          {card.decimals ? card.value.toFixed(card.decimals) : card.value}
+                        </span>
+                        {card.suffix && <span className="text-sm font-semibold text-accent">{card.suffix}</span>}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-accent/15 bg-accent/5 p-2.5 transition-colors duration-300 group-hover:border-accent/40 group-hover:bg-accent/10">
+                      <card.icon className="h-5 w-5 text-accent transition-transform duration-300 group-hover:scale-110" />
                     </div>
                   </div>
-                  <div className="rounded-lg border border-accent/15 bg-accent/5 p-2.5 transition-colors duration-300 group-hover:border-accent/40 group-hover:bg-accent/10">
-                    <card.icon className="h-5 w-5 text-accent transition-transform duration-300 group-hover:scale-110" />
+                  <div className="mt-3 flex items-center justify-between border-t border-accent/5 pt-3">
+                    <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold ${card.up ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
+                      {card.up ? "↑" : "↓"} {card.trend}
+                    </span>
+                    <div className="h-6 w-12">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={sparklineData}>
+                          <Area type="monotone" dataKey="value" stroke={card.sparkColor} fill={card.sparkColor} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-3 flex items-center justify-between border-t border-accent/5 pt-3">
-                  <span className={`flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold ${card.up ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>
-                    {card.up ? "↑" : "↓"} {card.trend}
-                  </span>
-                  <div className="h-6 w-12">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={sparklineData}>
-                        <Area type="monotone" dataKey="value" stroke={card.sparkColor} fill={card.sparkColor} fillOpacity={0.15} strokeWidth={1.5} dot={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </GlassCard>
-            ))}
-          </motion.div>
+                </GlassCard>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div variants={itemVariants} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="skeleton-shimmer h-[92px] rounded-xl" />
+              ))}
+            </motion.div>
+          )}
 
           {/* ---- MAIN GRID ---- */}
           <div className="mx-auto w-full space-y-5">
@@ -356,15 +341,10 @@ export default function DashboardPage() {
                       <Info className="h-3 w-3" />
                       Summary
                     </button>
-                    <button
-                      onClick={() => setIsLiveRunning(!isLiveRunning)}
-                      className={`flex items-center gap-1 rounded-lg border px-3 py-1.5 text-[9px] font-display font-bold uppercase tracking-wider transition-all ${
-                        isLiveRunning ? "border-accent/30 bg-accent/10 text-accent hover:bg-accent/20" : "border-amber-500/30 bg-amber-500/10 text-warning hover:bg-amber-500/25"
-                      }`}
-                    >
-                      {isLiveRunning ? <Pause className="h-3 w-3 fill-current" /> : <Play className="h-3 w-3 fill-current" />}
-                      {isLiveRunning ? "Live" : "Paused"}
-                    </button>
+                    <div className="flex items-center gap-1 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-[9px] font-display font-bold uppercase tracking-wider text-accent">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success led-fast" />
+                      Camera Ready
+                    </div>
                   </div>
                 </div>
 
@@ -377,118 +357,95 @@ export default function DashboardPage() {
                   <div className="absolute left-3 top-3 z-20 flex items-center gap-3 rounded-lg bg-black/70 border border-accent/10 px-2.5 py-1.5 font-mono text-[9px] backdrop-blur-sm">
                     <span className="flex items-center gap-1.5 text-success">
                       <span className="h-1.5 w-1.5 rounded-full bg-success led-fast" />
-                      LIVE
+                      CAM 01
                     </span>
-                    <span className="text-slate-400">CAM 01</span>
-                    <span className="text-accent">{stats?.today?.fps || "29.8"} FPS</span>
+                    <span className="text-accent">{stats ? `${stats.today.fps} FPS` : "—"}</span>
                   </div>
 
+                  {/* Empty state — waiting for inspection result */}
+                  {!inspection && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
+                      <span className="font-mono text-[11px] tracking-[0.3em] text-slate-400 uppercase font-bold">Waiting for inspection</span>
+                      <span className="font-mono text-[9px] text-slate-600">A result will appear here when the backend provides one</span>
+                    </div>
+                  )}
+
                   {/* PCB SVG - contained with margins */}
-                  <svg className="absolute inset-0 m-auto max-h-[92%] max-w-[92%] opacity-70" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="30" y="20" width="540" height="360" rx="12" stroke="#32d583" strokeWidth="1.5" opacity="0.5" />
-                    <circle cx="55" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <circle cx="545" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <circle cx="55" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <circle cx="545" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <rect x="220" y="120" width="160" height="160" rx="4" stroke="#32d583" strokeWidth="1.5" opacity="0.6" />
-                    <circle cx="300" cy="200" r="35" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <circle cx="220" cy="120" r="3" fill="#32d583" opacity="0.6" />
-                    <path d="M380 200h80M140 200h-40M300 120V80M300 320v40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                    <path d="M220 160H140M460 240h40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                    <rect x="70" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                    <rect x="70" y="290" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                    <rect x="495" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                    <rect x="120" y="70" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <rect x="120" y="85" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <rect x="460" y="290" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                    <rect x="200" y="350" width="200" height="30" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                    <line x1="220" y1="365" x2="220" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                    <line x1="260" y1="365" x2="260" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                    <line x1="300" y1="365" x2="300" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                    <line x1="340" y1="365" x2="340" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                    <line x1="380" y1="365" x2="380" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                    <text x="222" y="115" fill="#32d583" fontSize="7" fontFamily="monospace" opacity="0.6">U1</text>
-                    <text x="72" y="55" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C12</text>
-                    <text x="72" y="285" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C13</text>
-                    <text x="122" y="65" fill="#32d583" fontSize="5" fontFamily="monospace" opacity="0.4">R8</text>
-                  </svg>
+                  {inspection && (
+                    <svg className="absolute inset-0 m-auto max-h-[92%] max-w-[92%] opacity-70" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="30" y="20" width="540" height="360" rx="12" stroke="#32d583" strokeWidth="1.5" opacity="0.5" />
+                      <circle cx="55" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <circle cx="545" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <circle cx="55" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <circle cx="545" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <rect x="220" y="120" width="160" height="160" rx="4" stroke="#32d583" strokeWidth="1.5" opacity="0.6" />
+                      <circle cx="300" cy="200" r="35" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <circle cx="220" cy="120" r="3" fill="#32d583" opacity="0.6" />
+                      <path d="M380 200h80M140 200h-40M300 120V80M300 320v40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                      <path d="M220 160H140M460 240h40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                      <rect x="70" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                      <rect x="70" y="290" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                      <rect x="495" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                      <rect x="120" y="70" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <rect x="120" y="85" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <rect x="460" y="290" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                      <rect x="200" y="350" width="200" height="30" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                      <line x1="220" y1="365" x2="220" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                      <line x1="260" y1="365" x2="260" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                      <line x1="300" y1="365" x2="300" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                      <line x1="340" y1="365" x2="340" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                      <line x1="380" y1="365" x2="380" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                      <text x="222" y="115" fill="#32d583" fontSize="7" fontFamily="monospace" opacity="0.6">U1</text>
+                      <text x="72" y="55" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C12</text>
+                      <text x="72" y="285" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C13</text>
+                      <text x="122" y="65" fill="#32d583" fontSize="5" fontFamily="monospace" opacity="0.4">R8</text>
+                    </svg>
+                  )}
 
                   {/* YOLO detection boxes */}
                   <AnimatePresence>
-                    {activeBoard && (
-                      <>
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.4 }}
-                          className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
-                          style={{ left: "35%", top: "28%", width: "28%", height: "42%" }}
-                          onClick={() => handleComponentClick(components[0])}
-                        >
-                          <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">U1 99.8%</span>
-                        </motion.div>
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.4, delay: 0.1 }}
-                          className="absolute border border-success/40 bg-success/5 rounded cursor-pointer"
-                          style={{ left: "11%", top: "14%", width: "6%", height: "13%" }}
-                          onClick={() => handleComponentClick(components[1])}
-                        >
-                          <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">C12 98.4%</span>
-                        </motion.div>
-                        {activeBoard.status === "FAIL" && activeBoard.defectCoordinates && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="absolute border-2 border-danger bg-danger/10 flex flex-col justify-start rounded font-mono text-[9px] font-bold p-1 animate-pulse cursor-pointer"
-                            style={{
-                              left: `${(activeBoard.defectCoordinates.x / 600) * 100}%`,
-                              top: `${(activeBoard.defectCoordinates.y / 400) * 100}%`,
-                              width: `${(activeBoard.defectCoordinates.radius * 2 / 600) * 100}%`,
-                              height: `${(activeBoard.defectCoordinates.radius * 2 / 400) * 100}%`,
-                            }}
-                          >
-                            <span className="text-danger text-[7px]">{activeBoard.defect.toUpperCase()}</span>
-                            <span className="text-danger/80 text-[7px]">CONF: {activeBoard.confidence}%</span>
-                          </motion.div>
-                        )}
-                      </>
-                    )}
+                    {inspection && inspection.detections.map((det) => (
+                      <motion.div
+                        key={det.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
+                        style={{
+                          left: `${det.bbox.left}%`,
+                          top: `${det.bbox.top}%`,
+                          width: `${det.bbox.width}%`,
+                          height: `${det.bbox.height}%`,
+                        }}
+                        onClick={() => handleComponentClick(det)}
+                      >
+                        <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">{det.id} {det.confidence}%</span>
+                      </motion.div>
+                    ))}
                   </AnimatePresence>
 
                   {/* Grad-CAM overlay (toggle) */}
-                  {showGradCam && (
+                  {showGradCam && inspection && (
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 0.25 }}
                       className="absolute inset-0 rounded-xl pointer-events-none"
-                      style={{ background: `radial-gradient(circle at ${activeBoard?.defectCoordinates?.x ? `${(activeBoard.defectCoordinates.x / 600) * 100}%` : "50%"} ${activeBoard?.defectCoordinates?.y ? `${(activeBoard.defectCoordinates.y / 400) * 100}%` : "50%"}, rgba(50,213,131,0.3) 0%, rgba(50,213,131,0.05) 40%, transparent 70%)` }}
-                    />
-                  )}
-
-                  {/* Laser scan */}
-                  {isLiveRunning && (
-                    <motion.div className="absolute left-0 w-full"
-                      style={{ height: "2px", top: `${scanProgress}%`, background: "linear-gradient(90deg, transparent, #32d583, #7ce7ac, #32d583, transparent)", boxShadow: "0 0 10px 3px rgba(50,213,131,0.5)" }}
+                      style={{ background: `radial-gradient(circle at 50% 50%, rgba(50,213,131,0.3) 0%, rgba(50,213,131,0.05) 40%, transparent 70%)` }}
                     />
                   )}
 
                   {/* Bottom HUD - simplified */}
-                  {activeBoard && (
+                  {inspection && (
                     <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 rounded-lg bg-black/80 border border-accent/15 px-3 py-1.5 font-mono text-[9px] backdrop-blur-sm">
                       <div className="flex items-center gap-3">
                         <span className="text-slate-500">Board:</span>
-                        <span className="font-bold text-white">{activeBoard.id}</span>
+                        <span className="font-bold text-white">{inspection.pcbId}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <StatusBadge status={activeBoard.status} />
+                        <StatusBadge status={inspection.status} />
                         <span className="text-slate-500">
-                          Conf: <span className="text-white">{activeBoard.confidence}%</span>
+                          Conf: <span className="text-white">{inspection.confidence}%</span>
                         </span>
                       </div>
                     </div>
@@ -496,7 +453,7 @@ export default function DashboardPage() {
 
                   {/* Compact Inspection Summary Overlay */}
                   <AnimatePresence>
-                    {showSummaryOverlay && (
+                    {showSummaryOverlay && inspection && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -506,12 +463,12 @@ export default function DashboardPage() {
                       >
                         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                           {[
-                            { label: "Components", value: "42" },
-                            { label: "Detected", value: "42", color: "text-success" },
-                            { label: "Missing", value: "0", color: "text-success" },
-                            { label: "Orient. Err.", value: "0", color: "text-success" },
-                            { label: "X-MCCV", value: "100%", color: "text-accent" },
-                            { label: "Confidence", value: `${activeBoard?.confidence || "98.5"}%`, color: "text-accent" },
+                            { label: "Components", value: inspection.componentsCount, color: "text-white" },
+                            { label: "Detected", value: inspection.detections.length, color: "text-success" },
+                            { label: "Missing", value: presenceFailures, color: presenceFailures ? "text-danger" : "text-success" },
+                            { label: "Orient. Err.", value: inspection.verificationDetails.orientation.filter((o) => o.status === "FAIL").length, color: "text-success" },
+                            { label: "X-MCCV", value: allChecksPass ? "100%" : "0%", color: "text-accent" },
+                            { label: "Confidence", value: `${inspection.confidence}%`, color: "text-accent" },
                           ].map((s) => (
                             <div key={s.label} className="flex items-center justify-between border-b border-accent/[0.04] py-0.5">
                               <span className="text-[8px] font-mono text-slate-500">{s.label}</span>
@@ -548,45 +505,51 @@ export default function DashboardPage() {
                     transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                     className="overflow-hidden"
                   >
-                    <GlassCard hoverLift={false}>
+                    <GlassCard hoverLift={false} className="mx-auto w-[min(62%,1020px)]">
                       <div className="flex items-center justify-between border-b border-accent/5 pb-2">
                         <div className="flex items-center gap-2">
                           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success/15 text-[9px] font-bold text-success">{selectedComponent.name.charAt(0)}</span>
                           <span className="font-display text-[10px] font-bold uppercase tracking-widest text-white">{selectedComponent.name}</span>
-                          <StatusBadge status={selectedComponent.status} />
+                          {selectedComponent.status && <StatusBadge status={selectedComponent.status} />}
                         </div>
                         <button onClick={() => setSelectedComponent(null)} className="text-slate-500 hover:text-white transition-colors">
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <div className="mt-3 grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between font-mono text-[10px]">
-                            <span className="text-slate-500">Confidence</span>
-                            <span className="text-accent font-bold">{selectedComponent.confidence}%</span>
+                      {selectedComponent.confidence !== undefined && selectedComponent.reason !== undefined ? (
+                        <div className="mt-3 grid grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between font-mono text-[10px]">
+                              <span className="text-slate-500">Confidence</span>
+                              <span className="text-accent font-bold">{selectedComponent.confidence}%</span>
+                            </div>
+                            <div className="flex justify-between font-mono text-[10px]">
+                              <span className="text-slate-500">Reason</span>
+                              <span className="text-slate-300 text-right max-w-[140px]">{selectedComponent.reason}</span>
+                            </div>
                           </div>
-                          <div className="flex justify-between font-mono text-[10px]">
-                            <span className="text-slate-500">Reason</span>
-                            <span className="text-slate-300 text-right max-w-[140px]">{selectedComponent.reason}</span>
+                          <div className="rounded-lg border border-accent/5 bg-[#050816]/40 p-2.5">
+                            <p className="text-[8px] font-mono text-slate-500 mb-1.5">X-MCCV Verification</p>
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                              {[
+                                { label: "Presence", pass: selectedComponent.presence },
+                                { label: "Position", pass: selectedComponent.position },
+                                { label: "Orientation", pass: selectedComponent.orientation },
+                                { label: "Count", pass: selectedComponent.count },
+                              ].map((v) => (
+                                <div key={v.label} className="flex items-center gap-1.5 font-mono text-[9px]">
+                                  <span className={`h-1.5 w-1.5 rounded-full ${v.pass ? "bg-success" : "bg-danger"}`} />
+                                  <span className="text-slate-400">{v.label}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                        <div className="rounded-lg border border-accent/5 bg-[#050816]/40 p-2.5">
-                          <p className="text-[8px] font-mono text-slate-500 mb-1.5">X-MCCV Verification</p>
-                          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                            {[
-                              { label: "Presence", pass: selectedComponent.presence },
-                              { label: "Position", pass: selectedComponent.position },
-                              { label: "Orientation", pass: selectedComponent.orientation },
-                              { label: "Count", pass: selectedComponent.count },
-                            ].map((v) => (
-                              <div key={v.label} className="flex items-center gap-1.5 font-mono text-[9px]">
-                                <span className={`h-1.5 w-1.5 rounded-full ${v.pass ? "bg-success" : "bg-danger"}`} />
-                                <span className="text-slate-400">{v.label}</span>
-                              </div>
-                            ))}
-                          </div>
+                      ) : (
+                        <div className="mt-3 font-mono text-[10px] text-slate-500">
+                          No verification details available for this component.
                         </div>
-                      </div>
+                      )}
                     </GlassCard>
                   </motion.div>
                 )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Sidebar from "../../components/layout/Sidebar";
 import PageWrapper from "../../components/layout/PageWrapper";
 import SearchBar from "../../components/common/SearchBar";
@@ -7,7 +7,7 @@ import StatusBadge from "../../components/common/StatusBadge";
 import Modal from "../../components/common/Modal";
 import GlassCard from "../../components/cards/GlassCard";
 import Button from "../../components/common/Button";
-import { mockApi } from "../../services/mockApi";
+import { useHistory } from "../../hooks/useHistory";
 import { formatDate, formatDuration, formatConfidence } from "../../utils/formatters";
 import { 
   Eye, 
@@ -21,11 +21,6 @@ import {
 } from "lucide-react";
 
 export default function HistoryPage() {
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(1);
-
   // Filter States
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
@@ -34,32 +29,16 @@ export default function HistoryPage() {
   const [sortBy, setSortBy] = useState("timestamp");
   const [order, setOrder] = useState("desc");
 
+  const filters = useMemo(
+    () => ({ search, status, defect, page, sortBy, order }),
+    [search, status, defect, page, sortBy, order],
+  );
+
+  const { data, total, pages, loading, error } = useHistory(filters);
+
   // Detail Modal State
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const fetchHistory = () => {
-    setLoading(true);
-    mockApi.getHistory({
-      search,
-      status,
-      defect,
-      page,
-      limit: 10,
-      sortBy,
-      order
-    }).then((res) => {
-      setData(res.records);
-      setTotal(res.total);
-      setPages(res.pages);
-      setLoading(false);
-    });
-  };
-
-  // Re-fetch on filter changes
-  useEffect(() => {
-    fetchHistory();
-  }, [search, status, defect, page, sortBy, order]);
 
   // Reset Filters helper
   const handleReset = () => {
@@ -176,7 +155,16 @@ export default function HistoryPage() {
         {/* Data Table */}
         {loading ? (
           <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
-            Quering Database records...
+            Loading inspection history...
+          </div>
+        ) : error ? (
+          <div className="h-64 flex flex-col items-center justify-center gap-2 font-mono text-xs text-slate-500 uppercase tracking-widest">
+            <span className="text-danger">Unable to retrieve inspection history.</span>
+            <span className="text-slate-600 normal-case">Please try again.</span>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
+            No inspection records match the current filters.
           </div>
         ) : (
           <CustomTable
