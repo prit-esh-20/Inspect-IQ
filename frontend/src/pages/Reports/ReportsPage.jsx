@@ -46,10 +46,10 @@ export default function ReportsPage() {
       <Sidebar />
 
       {/* Main Container */}
-      <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-6 md:p-8 space-y-5 max-w-7xl mx-auto w-full">
         
         {/* Title */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-accent/10 pb-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-accent/10 pb-3">
           <div className="text-left space-y-0.5">
             <h1 className="font-display text-xl md:text-2xl font-bold text-white uppercase tracking-wider">
               Quality Audit Reports
@@ -60,13 +60,13 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
           {/* LEFT COLUMN: Report Generator Form */}
-          <div className="lg:col-span-5 space-y-6 text-left">
-            <GlassCard className="space-y-5" hoverLift={false}>
+          <div className="lg:col-span-5 space-y-5 text-left">
+            <GlassCard className="space-y-4 !p-4" hoverLift={false}>
               
-              <div className="flex items-center gap-2 border-b border-accent/5 pb-2">
+              <div className="flex items-center gap-2 border-b border-accent/5 pb-1.5">
                 <FileText className="w-4 h-4 text-accent" />
                 <span className="font-display text-[10px] tracking-widest text-[#9ca3af] uppercase font-bold">
                   Compile New PDF Report
@@ -74,10 +74,10 @@ export default function ReportsPage() {
               </div>
 
               {/* Form Controls */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 
                 {/* Report Type */}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
                     Report details scope
                   </label>
@@ -90,7 +90,7 @@ export default function ReportsPage() {
                       <button
                         key={type.id}
                         onClick={() => setExportType(type.id)}
-                        className={`py-2 text-[9px] font-display uppercase tracking-widest font-extrabold rounded-lg border transition-all cursor-pointer ${
+                        className={`py-1.5 text-[9px] font-display uppercase tracking-widest font-extrabold rounded-lg border transition-all cursor-pointer ${
                           exportType === type.id
                             ? "bg-accent/10 border-accent text-accent shadow-[0_0_10px_rgba(0,229,255,0.15)]"
                             : "bg-secondary-bg border-accent/10 text-slate-400 hover:border-accent/30"
@@ -103,14 +103,14 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Model Target Selection */}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
                     Select Target Model
                   </label>
                   <select
                     value={modelTarget}
                     onChange={(e) => setModelTarget(e.target.value)}
-                    className="w-full bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2.5 font-sans text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent transition-all cursor-pointer"
+                    className="w-full bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2 font-sans text-xs text-white placeholder-slate-500 focus:outline-none focus:border-accent transition-all cursor-pointer"
                   >
                     <option value="ALL" className="bg-[#111827]">All Models Combined</option>
                     <option value="RPI4" className="bg-[#111827]">Raspberry Pi 4 Model B</option>
@@ -120,7 +120,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Scope Selection */}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
                     Select Date Scope
                   </label>
@@ -128,18 +128,18 @@ export default function ReportsPage() {
                     <input
                       type="date"
                       defaultValue="2026-07-01"
-                      className="bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2 text-xs text-slate-300 font-mono focus:outline-none focus:border-accent"
+                      className="bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-accent"
                     />
                     <input
                       type="date"
                       defaultValue="2026-07-24"
-                      className="bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2 text-xs text-slate-300 font-mono focus:outline-none focus:border-accent"
+                      className="bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-accent"
                     />
                   </div>
                 </div>
 
                 {/* Rules Toggles */}
-                <div className="p-3 bg-[#050816]/60 border border-accent/5 rounded-lg space-y-2">
+                <div className="p-2.5 bg-[#050816]/60 border border-accent/5 rounded-lg space-y-1.5">
                   <div className="flex items-center justify-between font-mono text-[9px] text-slate-400">
                     <span>Embed Grad-CAM heatmaps:</span>
                     <input type="checkbox" defaultChecked className="accent-accent" />
@@ -151,7 +151,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Create Trigger */}
-                <Button variant="primary" className="w-full flex items-center justify-center gap-2" onClick={handleCreateReport}>
+                <Button variant="primary" className="w-full flex items-center justify-center gap-2 py-2.5!" onClick={handleCreateReport}>
                   Compile Audit Log File
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -161,7 +161,7 @@ export default function ReportsPage() {
           </div>
 
           {/* RIGHT COLUMN: Available Reports List */}
-          <div className="lg:col-span-7 space-y-4">
+          <div className="lg:col-span-7 space-y-3">
 
             {loading ? (
               <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
@@ -178,9 +178,9 @@ export default function ReportsPage() {
               </div>
             ) : (
               reports.map((batch) => (
-              <GlassCard key={batch.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-left" hoverLift={true}>
+              <GlassCard key={batch.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 !p-3.5 text-left" hoverLift={true}>
                 
-                <div className="space-y-1 flex-1">
+                <div className="space-y-0.5 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-[9px] bg-accent/10 border border-accent/20 px-2 py-0.5 rounded text-accent font-semibold">
                       {batch.id}
@@ -195,7 +195,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Download action */}
-                <div className="flex items-center gap-3 w-full sm:w-auto border-t sm:border-t-0 border-accent/5 pt-3 sm:pt-0">
+                <div className="flex items-center gap-3 w-full sm:w-auto border-t sm:border-t-0 border-accent/5 pt-2.5 sm:pt-0">
                   <span className={`flex items-center gap-1 font-mono text-[8px] tracking-wider px-2 py-1 border rounded uppercase font-bold ${
                     batch.status === "COMPILED" 
                       ? "border-success/30 bg-success/5 text-success" 
@@ -213,7 +213,7 @@ export default function ReportsPage() {
                 </div>
 
               </GlassCard>
-            ))}
+            )))}
 
           </div>
 

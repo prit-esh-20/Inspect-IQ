@@ -19,6 +19,10 @@ import LoginPage from "./pages/Login/LoginPage";
 // Auth
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
+// Notifications
+import { NotificationProvider } from "./context/NotificationContext";
+import NotificationHost from "./components/common/NotificationHost";
+
 // Hooks
 import useSmoothScroll from "./hooks/useSmoothScroll";
 
@@ -58,7 +62,10 @@ function AppShell() {
 function AppShellWithAuth() {
   return (
     <AuthProvider>
-      <AppShell />
+      <NotificationProvider>
+        <AppShell />
+        <NotificationHost />
+      </NotificationProvider>
     </AuthProvider>
   );
 }
