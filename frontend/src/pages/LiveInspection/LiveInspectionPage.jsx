@@ -1,6 +1,5 @@
 import { useState } from "react";
-import Sidebar from "../../components/layout/Sidebar";
-import PageWrapper from "../../components/layout/PageWrapper";
+import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import Button from "../../components/common/Button";
@@ -29,8 +28,7 @@ export default function LiveInspectionPage() {
   const defect = inspection?.defects?.[0] || null;
 
   return (
-    <PageWrapper className="flex min-h-screen pl-64 pb-8">
-      <Sidebar />
+    <AppLayout>
 
       {/* Main Console Workspace */}
       <main className="flex-1 p-4 md:p-6 space-y-4 max-w-[1440px] w-full">
@@ -362,6 +360,6 @@ export default function LiveInspectionPage() {
         </div>
 
       </main>
-    </PageWrapper>
+    </AppLayout>
   );
 }

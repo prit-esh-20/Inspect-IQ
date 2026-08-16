@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import Sidebar from "../../components/layout/Sidebar";
-import PageWrapper from "../../components/layout/PageWrapper";
+import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import Button from "../../components/common/Button";
 import { mockApi } from "../../services/mockApi";
@@ -57,15 +56,14 @@ export default function SettingsPage() {
 
   if (loading || !settings) {
     return (
-      <div className="flex h-screen pl-64 items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
+      <div className="flex h-screen pl-56 items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
         Loading Configurations...
       </div>
     );
   }
 
   return (
-    <PageWrapper className="flex min-h-screen pl-64 pb-8">
-      <Sidebar />
+    <AppLayout>
       <Toaster position="top-right" />
 
       {/* Main Container */}
@@ -293,6 +291,6 @@ export default function SettingsPage() {
         </form>
 
       </main>
-    </PageWrapper>
+    </AppLayout>
   );
 }

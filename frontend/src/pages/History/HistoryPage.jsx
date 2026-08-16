@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
-import Sidebar from "../../components/layout/Sidebar";
-import PageWrapper from "../../components/layout/PageWrapper";
+import AppLayout from "../../components/layout/AppLayout";
 import SearchBar from "../../components/common/SearchBar";
 import CustomTable from "../../components/common/CustomTable";
 import StatusBadge from "../../components/common/StatusBadge";
@@ -120,8 +119,7 @@ export default function HistoryPage() {
   ];
 
   return (
-    <PageWrapper className="flex min-h-screen pl-64 pb-8">
-      <Sidebar />
+    <AppLayout>
 
       {/* Main Container */}
       <main className="flex-1 p-6 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
@@ -336,6 +334,6 @@ export default function HistoryPage() {
         </Modal>
       )}
 
-    </PageWrapper>
+    </AppLayout>
   );
 }

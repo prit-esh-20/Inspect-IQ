@@ -1,6 +1,5 @@
 import { useState } from "react";
-import Sidebar from "../../components/layout/Sidebar";
-import PageWrapper from "../../components/layout/PageWrapper";
+import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import Button from "../../components/common/Button";
 import { useReports } from "../../hooks/useReports";
@@ -42,8 +41,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <PageWrapper className="flex min-h-screen pl-64 pb-8">
-      <Sidebar />
+    <AppLayout>
 
       {/* Main Container */}
       <main className="flex-1 p-6 md:p-8 space-y-5 max-w-7xl mx-auto w-full">
@@ -220,6 +218,6 @@ export default function ReportsPage() {
         </div>
 
       </main>
-    </PageWrapper>
+    </AppLayout>
   );
 }

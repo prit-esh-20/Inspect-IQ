@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Sidebar from "../../components/layout/Sidebar";
-import PageWrapper from "../../components/layout/PageWrapper";
+import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
@@ -102,9 +101,7 @@ export default function DashboardPage() {
     inspection?.verificationDetails?.orientation?.every((p) => p.status === "PASS");
 
   return (
-    <PageWrapper className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 pl-56 h-screen overflow-y-auto overflow-x-hidden" data-lenis-prevent>
+    <AppLayout>
         {/* ========== TOP BAR ========== */}
         <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-accent/10 bg-primary-bg/90 px-6 backdrop-blur-xl">
           <div className={`relative flex items-center transition-all duration-300 ${searchFocused ? "w-[500px]" : "w-80"}`}>
@@ -557,7 +554,6 @@ export default function DashboardPage() {
             </motion.div>
           </div>
         </motion.main>
-      </div>
-    </PageWrapper>
+    </AppLayout>
   );
 }

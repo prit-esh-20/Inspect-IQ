@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import Sidebar from "../../components/layout/Sidebar";
-import PageWrapper from "../../components/layout/PageWrapper";
+import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import { useAnalytics } from "../../hooks/useAnalytics";
 import { 
@@ -240,36 +239,33 @@ export default function AnalyticsPage() {
 
   if (error && !data) {
     return (
-      <PageWrapper className="flex min-h-screen pl-64 pb-8">
-        <Sidebar />
+      <AppLayout>
         <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-6 md:p-8">
           <div className="h-64 flex flex-col items-center justify-center gap-2 font-mono text-xs text-slate-500 uppercase tracking-widest">
             <span className="text-danger">Unable to retrieve analytics data.</span>
             <span className="text-slate-600 normal-case">Please try again.</span>
           </div>
         </main>
-      </PageWrapper>
+      </AppLayout>
     );
   }
 
   if (!loading && (!data || !data.kpis)) {
     return (
-      <PageWrapper className="flex min-h-screen pl-64 pb-8">
-        <Sidebar />
+      <AppLayout>
         <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-6 md:p-8">
           <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
             No analytics data available yet.
           </div>
         </main>
-      </PageWrapper>
+      </AppLayout>
     );
   }
 
   const { kpis = [], qualitySummary = [], donutStats = [], yieldRate = 0, defectChart = [], hourlyThroughput = [], trend7Days = [] } = data || {};
 
   return (
-    <PageWrapper className="flex min-h-screen pl-64 pb-8">
-      <Sidebar />
+    <AppLayout>
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-6 md:p-8">
         {/* Header Title */}
@@ -649,6 +645,6 @@ export default function AnalyticsPage() {
           </>
         )}
       </AnimatePresence>
-    </PageWrapper>
+    </AppLayout>
   );
 }
