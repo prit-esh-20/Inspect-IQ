@@ -1,17 +1,24 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { useDashboard } from "../../hooks/useDashboard";
-import { useInspection } from "../../hooks/useInspection";
+import { useInspection, INSPECTION_STATE } from "../../hooks/useInspection";
+import { useUpload } from "../../hooks/useUpload";
+import { useReport } from "../../hooks/useReport";
+import { useExport } from "../../hooks/useExport";
+import { useSnapshot } from "../../hooks/useSnapshot";
+import { useXAI } from "../../hooks/useXAI";
+import { useCameraStatus } from "../../hooks/useCameraStatus";
 import { TREND_7_DAYS } from "../../services/mock/mockData";
 import {
   AreaChart, Area, ResponsiveContainer,
 } from "recharts";
 import {
-  Play, Camera,
+  Play, Camera, Loader2, RefreshCw,
   AlertTriangle, CheckCircle, Clock, Bell, Upload, FileText, Download, Image,
   Search, ChevronDown, Settings, LogOut, User, X,
   Scan, Layers, GitBranch, Info, Sparkles,
@@ -44,20 +51,76 @@ const inspectionTimeline = [
   { step: "Result", icon: CheckCircle, done: null },
 ];
 
+const CAMERA_BADGE = {
+  CONNECTED: { dot: "bg-success led-fast", label: "Camera Ready", cls: "text-success border-accent/30 bg-accent/10" },
+  READY: { dot: "bg-success led-fast", label: "Camera Ready", cls: "text-success border-accent/30 bg-accent/10" },
+  INITIALIZING: { dot: "bg-warning led-slow", label: "Camera Initializing", cls: "text-warning border-warning/30 bg-warning/10" },
+  ERROR: { dot: "bg-danger led-fast", label: "Camera Error", cls: "text-danger border-danger/30 bg-danger/10" },
+  DISCONNECTED: { dot: "bg-slate-500", label: "Camera Disconnected", cls: "text-slate-400 border-white/10 bg-white/5" },
+  UNKNOWN: { dot: "bg-slate-500", label: "Camera Unknown", cls: "text-slate-400 border-white/10 bg-white/5" },
+};
+
+const formatValue = (value) => {
+  if (value === null || value === undefined) return "—";
+  return `${value}`;
+};
+
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const { stats } = useDashboard();
-  const { inspection } = useInspection();
+  const { notify } = useNotifications();
+
+  const {
+    inspection,
+    state: inspectionState,
+    errorMessage: inspectionError,
+    runInspection,
+    refreshInspection,
+  } = useInspection();
+
+  const {
+    uploadedImage,
+    uploading: uploadLoading,
+    uploadImage,
+  } = useUpload();
+
+  const {
+    generating,
+    generateReport,
+  } = useReport();
+
+  const {
+    exporting,
+    exportCsv,
+  } = useExport();
+
+  const {
+    capturing,
+    captureSnapshot,
+  } = useSnapshot();
+
+  const {
+    gradCam,
+    loading: gradCamLoading,
+    requestGradCam,
+    clear: clearXai,
+  } = useXAI();
+
+  const { cameraStatus } = useCameraStatus();
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [summaryView, setSummaryView] = useState(false);
   const [showGradCam, setShowGradCam] = useState(false);
-  const [showSummaryOverlay, setShowSummaryOverlay] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState(null);
+  const [actionStatus, setActionStatus] = useState(null);
   const notifRef = useRef(null);
   const userRef = useRef(null);
   const searchRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const imageRef = useRef(null);
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -84,6 +147,12 @@ export default function DashboardPage() {
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
+  // Clear Grad-CAM data whenever the active inspection changes.
+  useEffect(() => {
+    clearXai();
+    setShowGradCam(false);
+  }, [inspection?.inspectionId, clearXai]);
+
   const formatTime = (d) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const formatDate = (d) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
@@ -94,11 +163,140 @@ export default function DashboardPage() {
     setSelectedComponent(detail ? { ...detail, id: detection.id } : { name: detection.label, id: detection.id });
   };
 
+  // ---- Action handlers ----------------------------------------------------
+  const handleStartInspection = useCallback(async () => {
+    if (inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) return;
+    setActionStatus(null);
+    const payload = uploadedImage?.uploadId ? { uploadId: uploadedImage.uploadId } : undefined;
+    const result = await runInspection(payload);
+    if (!result.ok) {
+      notify({ type: "error", title: "Unable to start inspection.", message: result.message });
+      setActionStatus({ type: "error", text: result.message });
+    }
+  }, [inspectionState, uploadedImage, runInspection, notify]);
+
+  const handleFetchResult = useCallback(async () => {
+    const result = await refreshInspection();
+    if (!result.ok) {
+      notify({ type: "error", title: "Unable to load inspection result.", message: result.message });
+    }
+  }, [refreshInspection, notify]);
+
+  const handleFileSelected = useCallback(
+    async (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      setActionStatus(null);
+      const result = await uploadImage(file);
+      if (!result.ok) {
+        notify({ type: "error", title: "Unable to upload PCB image.", message: result.message });
+        setActionStatus({ type: "error", text: result.message });
+      }
+    },
+    [uploadImage, notify],
+  );
+
+  const handleGenerateReport = useCallback(async () => {
+    setActionStatus(null);
+    const result = await generateReport({ pcbId: inspection?.pcbId, inspectionId: inspection?.inspectionId });
+    if (!result.ok) {
+      notify({ type: "error", title: "Unable to generate report.", message: result.message });
+      setActionStatus({ type: "error", text: result.message });
+      return;
+    }
+    setActionStatus({
+      type: "success",
+      text: result.result?.downloadUrl
+        ? `Report ${result.result.reportId} generated — download started.`
+        : `Report ${result.result?.reportId || ""} returned by backend (${result.result?.status || "COMPILED"}).`,
+    });
+  }, [generateReport, inspection, notify]);
+
+  const handleExportCsv = useCallback(async () => {
+    setActionStatus(null);
+    const result = await exportCsv();
+    if (!result.ok) {
+      notify({ type: "error", title: "Unable to export inspection data.", message: result.message });
+      setActionStatus({ type: "error", text: result.message });
+      return;
+    }
+    setActionStatus({ type: "success", text: `Exported ${result.rows} inspection record(s).` });
+  }, [exportCsv, notify]);
+
+  const handleCaptureSnapshot = useCallback(async () => {
+    setActionStatus(null);
+    const result = await captureSnapshot({ imageElement: imageRef.current, inspection });
+    if (!result.ok) {
+      notify({ type: "error", title: "Unable to capture snapshot.", message: result.message });
+      setActionStatus({ type: "error", text: result.message });
+    }
+  }, [captureSnapshot, inspection, notify]);
+
+  const handleGradCamToggle = useCallback(async () => {
+    if (showGradCam) {
+      setShowGradCam(false);
+      return;
+    }
+    if (!inspection) {
+      notify({ type: "error", title: "Grad-CAM analysis unavailable.", message: "No active inspection to analyze." });
+      return;
+    }
+    if (!gradCam) {
+      const result = await requestGradCam(inspection.inspectionId || inspection.pcbId);
+      if (!result.ok) {
+        notify({ type: "error", title: "Grad-CAM analysis unavailable.", message: result.message });
+        return;
+      }
+    }
+    setShowGradCam(true);
+  }, [showGradCam, gradCam, inspection, requestGradCam, notify]);
+
+  // ---- Derived inspection metrics ------------------------------------------
   const presenceFailures = inspection?.verificationDetails?.presence?.filter((p) => p.status === "FAIL").length || 0;
   const allChecksPass =
     inspection?.verificationDetails?.presence?.every((p) => p.status === "PASS") &&
     inspection?.verificationDetails?.position?.every((p) => p.status === "PASS") &&
     inspection?.verificationDetails?.orientation?.every((p) => p.status === "PASS");
+
+  const presenceChecks = inspection?.verificationDetails?.presence ?? [];
+  const positionChecks = inspection?.verificationDetails?.position ?? [];
+  const orientationChecks = inspection?.verificationDetails?.orientation ?? [];
+  const failedChecks = [
+    ...presenceChecks.filter((c) => c.status === "FAIL"),
+    ...positionChecks.filter((c) => c.status === "FAIL"),
+    ...orientationChecks.filter((c) => c.status === "FAIL"),
+  ];
+  const totalChecks = presenceChecks.length + positionChecks.length + orientationChecks.length;
+
+  const rationaleText = failedChecks.length
+    ? `${failedChecks.length} of ${totalChecks} verification checks failed: ${failedChecks.map((c) => c.component || c.name).join(", ")}.`
+    : `All ${totalChecks} verification checks passed (presence ${presenceChecks.length}/${presenceChecks.length}, position ${positionChecks.length}/${positionChecks.length}, orientation ${orientationChecks.length}/${orientationChecks.length}).`;
+
+  const explanationText =
+    inspection?.xaiExplanation ||
+    (failedChecks.length
+      ? `${failedChecks.length} verification check(s) reported failure — see the detection details below.`
+      : `All verification checks passed; no anomaly was reported in the inspected regions.`);
+
+  const focusText = inspection?.detections?.length
+    ? `The model attended to ${inspection.detections.length} detected region(s): ${inspection.detections.map((d) => d.id || d.label).join(", ")}.`
+    : "No regions were highlighted by the model.";
+
+  const defectClassText = inspection?.defects?.length
+    ? inspection.defects.map((d) => d.label ?? d.type ?? "defect").join(", ")
+    : "None";
+
+  const cameraBadge = CAMERA_BADGE[cameraStatus.status] || CAMERA_BADGE.UNKNOWN;
+
+  // Button presentation states
+  const inspectionButton = {
+    [INSPECTION_STATE.READY]: { label: "Start Inspection", icon: Play, loading: false, disabled: false },
+    [INSPECTION_STATE.STARTING]: { label: "Starting...", icon: Loader2, loading: true, disabled: true },
+    [INSPECTION_STATE.INSPECTING]: { label: "Inspecting...", icon: RefreshCw, loading: true, disabled: false },
+    [INSPECTION_STATE.COMPLETED]: { label: "Start New Inspection", icon: Play, loading: false, disabled: false },
+    [INSPECTION_STATE.ERROR]: { label: "Retry Inspection", icon: Play, loading: false, disabled: false },
+  }[inspectionState];
 
   return (
     <AppLayout>
@@ -230,37 +428,109 @@ export default function DashboardPage() {
           </motion.div>
 
           {/* ---- QUICK ACTIONS ---- */}
-          <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-3">
-            {[
-              { label: "Start Inspection", icon: Play, primary: true },
-              { label: "Upload PCB Image", icon: Upload },
-              { label: "Generate Report", icon: FileText },
-              { label: "Export CSV", icon: Download },
-              { label: "Capture Snapshot", icon: Image },
-            ].map((action) => {
-              const Icon = action.icon;
-              return action.primary ? (
-                <motion.button
-                  key={action.label}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-primary-bg shadow-lg transition-all duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.25)]"
+          <motion.div variants={itemVariants} className="space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* START INSPECTION */}
+              <motion.button
+                whileHover={inspectionButton.disabled ? undefined : { scale: 1.03, y: -2 }}
+                whileTap={inspectionButton.disabled ? undefined : { scale: 0.97 }}
+                onClick={inspectionState === INSPECTION_STATE.INSPECTING ? handleFetchResult : handleStartInspection}
+                disabled={inspectionButton.disabled}
+                className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest shadow-lg transition-all duration-300 ${
+                  inspectionButton.disabled
+                    ? "cursor-not-allowed bg-accent/40 text-primary-bg/70"
+                    : "bg-accent text-primary-bg hover:shadow-[0_0_30px_rgba(50,213,131,0.25)]"
+                }`}
+              >
+                <inspectionButton.icon className={`h-3.5 w-3.5 ${inspectionButton.loading ? "animate-spin" : ""}`} />
+                {inspectionButton.label}
+              </motion.button>
+
+              {/* UPLOAD PCB IMAGE */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFileSelected}
+              />
+              <motion.button
+                whileHover={uploadLoading ? undefined : { scale: 1.03, y: -2 }}
+                whileTap={uploadLoading ? undefined : { scale: 0.97 }}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadLoading}
+                className={`group inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest backdrop-blur-sm transition-all duration-300 ${
+                  uploadLoading
+                    ? "cursor-not-allowed border-accent/10 bg-white/[0.02] text-slate-600"
+                    : "border-accent/20 bg-white/[0.03] text-white/80 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
+                }`}
+              >
+                {uploadLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />}
+                {uploadLoading ? "Uploading..." : "Upload PCB Image"}
+              </motion.button>
+
+              {/* GENERATE REPORT */}
+              <motion.button
+                whileHover={generating ? undefined : { scale: 1.03, y: -2 }}
+                whileTap={generating ? undefined : { scale: 0.97 }}
+                onClick={handleGenerateReport}
+                disabled={generating}
+                className={`group inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest backdrop-blur-sm transition-all duration-300 ${
+                  generating
+                    ? "cursor-not-allowed border-accent/10 bg-white/[0.02] text-slate-600"
+                    : "border-accent/20 bg-white/[0.03] text-white/80 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
+                }`}
+              >
+                {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />}
+                {generating ? "Generating..." : "Generate Report"}
+              </motion.button>
+
+              {/* EXPORT CSV */}
+              <motion.button
+                whileHover={exporting ? undefined : { scale: 1.03, y: -2 }}
+                whileTap={exporting ? undefined : { scale: 0.97 }}
+                onClick={handleExportCsv}
+                disabled={exporting}
+                className={`group inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest backdrop-blur-sm transition-all duration-300 ${
+                  exporting
+                    ? "cursor-not-allowed border-accent/10 bg-white/[0.02] text-slate-600"
+                    : "border-accent/20 bg-white/[0.03] text-white/80 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
+                }`}
+              >
+                {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />}
+                {exporting ? "Exporting..." : "Export CSV"}
+              </motion.button>
+
+              {/* CAPTURE SNAPSHOT */}
+              <motion.button
+                whileHover={capturing ? undefined : { scale: 1.03, y: -2 }}
+                whileTap={capturing ? undefined : { scale: 0.97 }}
+                onClick={handleCaptureSnapshot}
+                disabled={capturing}
+                className={`group inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest backdrop-blur-sm transition-all duration-300 ${
+                  capturing
+                    ? "cursor-not-allowed border-accent/10 bg-white/[0.02] text-slate-600"
+                    : "border-accent/20 bg-white/[0.03] text-white/80 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
+                }`}
+              >
+                {capturing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Image className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />}
+                {capturing ? "Capturing..." : "Capture Snapshot"}
+              </motion.button>
+            </div>
+
+            {/* Action result / error line — reflects the real API response */}
+            <AnimatePresence>
+              {actionStatus && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  className={`font-mono text-[10px] tracking-wide ${actionStatus.type === "error" ? "text-danger" : "text-accent"}`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {action.label}
-                </motion.button>
-              ) : (
-                <motion.button
-                  key={action.label}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="group inline-flex items-center gap-2 rounded-xl border border-accent/20 bg-white/[0.03] px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-white/80 backdrop-blur-sm transition-all duration-300 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
-                >
-                  <Icon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  {action.label}
-                </motion.button>
-              );
-            })}
+                  {actionStatus.text}
+                </motion.p>
+              )}
+            </AnimatePresence>
           </motion.div>
 
           {/* ---- KPI CARDS (backend-driven) ---- */}
@@ -323,24 +593,39 @@ export default function DashboardPage() {
                     <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Live Inspection Viewport</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Grad-CAM control */}
                     <button
-                      onClick={() => setShowGradCam(!showGradCam)}
+                      onClick={handleGradCamToggle}
+                      disabled={gradCamLoading}
                       className={`rounded-md px-2.5 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider transition-all ${
-                        showGradCam ? "bg-accent/15 text-accent border border-accent/30" : "text-slate-500 border border-transparent hover:text-slate-300"
+                        gradCamLoading
+                          ? "cursor-not-allowed text-slate-600"
+                          : showGradCam
+                            ? "bg-accent/15 text-accent border border-accent/30"
+                            : "text-slate-500 border border-transparent hover:text-slate-300"
                       }`}
                     >
-                      Grad-CAM
+                      {gradCamLoading ? "Loading..." : showGradCam ? "Grad-CAM ON" : "Grad-CAM"}
                     </button>
+                    {/* Summary control — switches viewport between live view and summary */}
                     <button
-                      onClick={() => setShowSummaryOverlay(!showSummaryOverlay)}
-                      className="flex items-center gap-1 rounded-md border border-accent/10 px-2.5 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider text-slate-500 transition-all hover:text-slate-300"
+                      onClick={() => setSummaryView(!summaryView)}
+                      disabled={!inspection}
+                      className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-[9px] font-mono font-semibold uppercase tracking-wider transition-all ${
+                        !inspection
+                          ? "cursor-not-allowed text-slate-700"
+                          : summaryView
+                            ? "bg-accent/15 text-accent border border-accent/30"
+                            : "border border-accent/10 text-slate-500 hover:text-slate-300"
+                      }`}
                     >
                       <Info className="h-3 w-3" />
-                      Summary
+                      {summaryView ? "Live View" : "Summary"}
                     </button>
-                    <div className="flex items-center gap-1 rounded-lg border border-accent/30 bg-accent/10 px-3 py-1.5 text-[9px] font-display font-bold uppercase tracking-wider text-accent">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success led-fast" />
-                      Camera Ready
+                    {/* Camera status badge — status indicator, not a button */}
+                    <div className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[9px] font-display font-bold uppercase tracking-wider select-none ${cameraBadge.cls}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${cameraBadge.dot}`} />
+                      {cameraBadge.label}
                     </div>
                   </div>
                 </div>
@@ -353,111 +638,17 @@ export default function DashboardPage() {
                   {/* Camera HUD - Top left */}
                   <div className="absolute left-3 top-3 z-20 flex items-center gap-3 rounded-lg bg-black/70 border border-accent/10 px-2.5 py-1.5 font-mono text-[9px] backdrop-blur-sm">
                     <span className="flex items-center gap-1.5 text-success">
-                      <span className="h-1.5 w-1.5 rounded-full bg-success led-fast" />
+                      <span className={`h-1.5 w-1.5 rounded-full ${cameraBadge.dot}`} />
                       CAM 01
                     </span>
                     <span className="text-accent">{stats ? `${stats.today.fps} FPS` : "—"}</span>
                   </div>
 
-                  {/* Empty state — waiting for inspection result */}
-                  {!inspection && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
-                      <span className="font-mono text-[11px] tracking-[0.3em] text-slate-400 uppercase font-bold">Waiting for inspection</span>
-                      <span className="font-mono text-[9px] text-slate-600">A result will appear here when the backend provides one</span>
-                    </div>
-                  )}
-
-                  {/* PCB SVG - contained with margins */}
-                  {inspection && (
-                    <svg className="absolute inset-0 m-auto max-h-[92%] max-w-[92%] opacity-70" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="30" y="20" width="540" height="360" rx="12" stroke="#32d583" strokeWidth="1.5" opacity="0.5" />
-                      <circle cx="55" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <circle cx="545" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <circle cx="55" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <circle cx="545" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <rect x="220" y="120" width="160" height="160" rx="4" stroke="#32d583" strokeWidth="1.5" opacity="0.6" />
-                      <circle cx="300" cy="200" r="35" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <circle cx="220" cy="120" r="3" fill="#32d583" opacity="0.6" />
-                      <path d="M380 200h80M140 200h-40M300 120V80M300 320v40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                      <path d="M220 160H140M460 240h40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                      <rect x="70" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                      <rect x="70" y="290" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                      <rect x="495" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                      <rect x="120" y="70" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <rect x="120" y="85" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <rect x="460" y="290" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
-                      <rect x="200" y="350" width="200" height="30" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
-                      <line x1="220" y1="365" x2="220" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                      <line x1="260" y1="365" x2="260" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                      <line x1="300" y1="365" x2="300" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                      <line x1="340" y1="365" x2="340" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                      <line x1="380" y1="365" x2="380" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
-                      <text x="222" y="115" fill="#32d583" fontSize="7" fontFamily="monospace" opacity="0.6">U1</text>
-                      <text x="72" y="55" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C12</text>
-                      <text x="72" y="285" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C13</text>
-                      <text x="122" y="65" fill="#32d583" fontSize="5" fontFamily="monospace" opacity="0.4">R8</text>
-                    </svg>
-                  )}
-
-                  {/* YOLO detection boxes */}
-                  <AnimatePresence>
-                    {inspection && inspection.detections.map((det) => (
-                      <motion.div
-                        key={det.id}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
-                        style={{
-                          left: `${det.bbox.left}%`,
-                          top: `${det.bbox.top}%`,
-                          width: `${det.bbox.width}%`,
-                          height: `${det.bbox.height}%`,
-                        }}
-                        onClick={() => handleComponentClick(det)}
-                      >
-                        <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">{det.id} {det.confidence}%</span>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-
-                  {/* Grad-CAM overlay (toggle) */}
-                  {showGradCam && inspection && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 0.25 }}
-                      className="absolute inset-0 rounded-xl pointer-events-none"
-                      style={{ background: `radial-gradient(circle at 50% 50%, rgba(50,213,131,0.3) 0%, rgba(50,213,131,0.05) 40%, transparent 70%)` }}
-                    />
-                  )}
-
-                  {/* Bottom HUD - simplified */}
-                  {inspection && (
-                    <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 rounded-lg bg-black/80 border border-accent/15 px-3 py-1.5 font-mono text-[9px] backdrop-blur-sm">
-                      <div className="flex items-center gap-3">
-                        <span className="text-slate-500">Board:</span>
-                        <span className="font-bold text-white">{inspection.pcbId}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <StatusBadge status={inspection.status} />
-                        <span className="text-slate-500">
-                          Conf: <span className="text-white">{inspection.confidence}%</span>
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Compact Inspection Summary Overlay */}
-                  <AnimatePresence>
-                    {showSummaryOverlay && inspection && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute right-3 top-12 z-30 w-56 rounded-xl border border-accent/10 bg-black/90 p-3 backdrop-blur-xl"
-                      >
+                  {/* Summary view — switches the viewport content */}
+                  {summaryView ? (
+                    inspection ? (
+                      <div className="absolute inset-0 z-20 overflow-y-auto rounded-xl bg-black/95 p-4">
+                        <p className="mb-2 font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-accent">Inspection Summary</p>
                         <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                           {[
                             { label: "Components", value: inspection.componentsCount, color: "text-white" },
@@ -473,7 +664,7 @@ export default function DashboardPage() {
                             </div>
                           ))}
                         </div>
-                        <div className="mt-2 flex items-center justify-between border-t border-accent/10 pt-2">
+                        <div className="mt-3 flex items-center justify-between border-t border-accent/10 pt-2">
                           {inspectionTimeline.map((step) => {
                             const Icon = step.icon;
                             return (
@@ -486,9 +677,136 @@ export default function DashboardPage() {
                             );
                           })}
                         </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/95">
+                        <span className="font-mono text-[10px] tracking-[0.3em] text-slate-500 uppercase font-bold">No inspection result to summarize</span>
+                      </div>
+                    )
+                  ) : (
+                    <>
+                      {/* Empty state — waiting for inspection result */}
+                      {!inspection && !uploadedImage && (
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
+                          <span className="font-mono text-[11px] tracking-[0.3em] text-slate-400 uppercase font-bold">Waiting for inspection</span>
+                          <span className="font-mono text-[9px] text-slate-600">
+                            {inspectionState === INSPECTION_STATE.ERROR
+                              ? inspectionError
+                              : "A result will appear here when the backend provides one"}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Inspection state overlay */}
+                      {(inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/60 backdrop-blur-sm">
+                          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+                          <span className="font-mono text-[10px] tracking-[0.3em] text-accent uppercase font-bold">
+                            {inspectionState === INSPECTION_STATE.STARTING ? "Starting inspection..." : "Inspecting..."}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Inspection error overlay */}
+                      {inspectionState === INSPECTION_STATE.ERROR && (
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/70 backdrop-blur-sm">
+                          <AlertTriangle className="h-6 w-6 text-danger" />
+                          <span className="font-mono text-[10px] tracking-[0.3em] text-danger uppercase font-bold">Inspection Failed</span>
+                          <span className="max-w-[60%] text-center font-mono text-[9px] text-slate-400">{inspectionError || "Unable to start inspection."}</span>
+                        </div>
+                      )}
+
+                      {/* Uploaded PCB image — the actual selected file */}
+                      {uploadedImage && (
+                        <img
+                          ref={imageRef}
+                          src={uploadedImage.url}
+                          alt={`Uploaded PCB: ${uploadedImage.name}`}
+                          className="absolute inset-0 z-[5] h-full w-full object-contain"
+                        />
+                      )}
+
+                      {/* PCB SVG - contained with margins */}
+                      {inspection && !uploadedImage && (
+                        <svg className="absolute inset-0 m-auto max-h-[92%] max-w-[92%] opacity-70" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <rect x="30" y="20" width="540" height="360" rx="12" stroke="#32d583" strokeWidth="1.5" opacity="0.5" />
+                          <circle cx="55" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <circle cx="545" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <circle cx="55" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <circle cx="545" cy="355" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <rect x="220" y="120" width="160" height="160" rx="4" stroke="#32d583" strokeWidth="1.5" opacity="0.6" />
+                          <circle cx="300" cy="200" r="35" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <circle cx="220" cy="120" r="3" fill="#32d583" opacity="0.6" />
+                          <path d="M380 200h80M140 200h-40M300 120V80M300 320v40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                          <path d="M220 160H140M460 240h40" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                          <rect x="70" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                          <rect x="70" y="290" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                          <rect x="495" y="60" width="35" height="50" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                          <rect x="120" y="70" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <rect x="120" y="85" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <rect x="460" y="290" width="20" height="8" rx="1" stroke="#32d583" strokeWidth="1" opacity="0.4" />
+                          <rect x="200" y="350" width="200" height="30" rx="3" stroke="#32d583" strokeWidth="1" opacity="0.5" />
+                          <line x1="220" y1="365" x2="220" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                          <line x1="260" y1="365" x2="260" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                          <line x1="300" y1="365" x2="300" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                          <line x1="340" y1="365" x2="340" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                          <line x1="380" y1="365" x2="380" y2="380" stroke="#32d583" strokeWidth="1" opacity="0.3" />
+                          <text x="222" y="115" fill="#32d583" fontSize="7" fontFamily="monospace" opacity="0.6">U1</text>
+                          <text x="72" y="55" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C12</text>
+                          <text x="72" y="285" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C13</text>
+                          <text x="122" y="65" fill="#32d583" fontSize="5" fontFamily="monospace" opacity="0.4">R8</text>
+                        </svg>
+                      )}
+
+                      {/* Grad-CAM overlay — only rendered from real backend heatmap data */}
+                      {showGradCam && gradCam?.heatmapUrl && (
+                        <img
+                          src={gradCam.heatmapUrl}
+                          alt="Grad-CAM heatmap"
+                          className="pointer-events-none absolute inset-0 z-10 h-full w-full object-contain opacity-60"
+                        />
+                      )}
+
+                      {/* YOLO detection boxes */}
+                      <AnimatePresence>
+                        {inspection && !summaryView && inspection.detections.map((det) => (
+                          <motion.div
+                            key={det.id}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.4 }}
+                            className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
+                            style={{
+                              left: `${det.bbox.left}%`,
+                              top: `${det.bbox.top}%`,
+                              width: `${det.bbox.width}%`,
+                              height: `${det.bbox.height}%`,
+                            }}
+                            onClick={() => handleComponentClick(det)}
+                          >
+                            <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">{det.id} {det.confidence}%</span>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+
+                      {/* Bottom HUD - simplified */}
+                      {inspection && (
+                        <div className="absolute bottom-2 left-2 right-2 z-20 flex items-center justify-between gap-2 rounded-lg bg-black/80 border border-accent/15 px-3 py-1.5 font-mono text-[9px] backdrop-blur-sm">
+                          <div className="flex items-center gap-3">
+                            <span className="text-slate-500">Board:</span>
+                            <span className="font-bold text-white">{inspection.pcbId}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <StatusBadge status={inspection.status} />
+                            <span className="text-slate-500">
+                              Conf: <span className="text-white">{inspection.confidence}%</span>
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </GlassCard>
 
@@ -569,13 +887,16 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Model Confidence */}
+                    {/* MODEL OUTPUT — detection result data */}
                     <div className="space-y-1.5">
                       <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
-                        Model Confidence
+                        Model Output
                       </label>
+
+                      {/* Confidence */}
                       <div className="flex items-baseline justify-between">
                         <span className="font-mono text-2xl font-extrabold text-white">{inspection.confidence}%</span>
+                        <StatusBadge status={inspection.status} />
                       </div>
                       <div className="relative h-1.5 w-full rounded-full bg-slate-900">
                         <div
@@ -583,75 +904,112 @@ export default function DashboardPage() {
                           style={{ width: `${Math.min(inspection.confidence ?? 0, 100)}%` }}
                         />
                       </div>
-                    </div>
 
-                    {/* Detection Result */}
-                    <div className="space-y-1.5">
-                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
-                        Detection Result
-                      </label>
-                      <StatusBadge status={inspection.status} />
-                    </div>
+                      {/* Defect class + bounding boxes */}
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between font-mono text-[10px]">
+                          <span className="text-slate-500">Defect class</span>
+                          <span className={inspection.defects?.length ? "text-danger font-bold" : "text-success font-bold"}>{defectClassText}</span>
+                        </div>
+                        <div className="flex justify-between font-mono text-[10px]">
+                          <span className="text-slate-500">Model</span>
+                          <span className="text-slate-300">{inspection.model || "—"}</span>
+                        </div>
+                      </div>
 
-                    {/* Defect Analysis */}
-                    <div className="space-y-1.5">
-                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
-                        Defect Analysis
-                      </label>
-                      <p className="font-sans text-[11px] text-slate-300 leading-relaxed">
-                        {inspection.defects?.length
-                          ? `Potential ${inspection.defects.map((d) => d.label ?? d.type ?? "defect").join(", ")} detected within the inspected regions.`
-                          : "No structural defects detected."}
-                      </p>
-                    </div>
-
-                    {/* Model Focus */}
-                    <div className="space-y-1.5">
-                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
-                        Model Focus
-                      </label>
-                      <div className="relative h-28 rounded-lg border border-accent/5 bg-black/90 overflow-hidden">
-                        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-                        {inspection.detections.map((det) => (
-                          <div
-                            key={det.id}
-                            className="absolute border border-success/40 bg-success/5 rounded"
-                            style={{
-                              left: `${det.bbox.left}%`,
-                              top: `${det.bbox.top}%`,
-                              width: `${det.bbox.width}%`,
-                              height: `${det.bbox.height}%`,
-                            }}
-                          >
-                            <span className="absolute -top-2.5 left-0 font-mono text-[6px] text-success font-bold bg-black/80 px-0.5 rounded whitespace-nowrap">{det.id}</span>
+                      {/* Detection / bounding box list */}
+                      <div className="rounded-lg border border-accent/5 bg-[#050816]/40 p-2.5">
+                        <p className="mb-1.5 text-[8px] font-mono text-slate-500 uppercase tracking-wider">Detections (bounding boxes)</p>
+                        {inspection.detections.length ? (
+                          <div className="space-y-1">
+                            {inspection.detections.map((det) => (
+                              <div key={det.id} className="flex items-center justify-between font-mono text-[9px]">
+                                <span className="text-success font-bold">{det.id}</span>
+                                <span className="text-slate-400">
+                                  {det.confidence}% · {formatValue(det.bbox?.left)},{formatValue(det.bbox?.top)} {formatValue(det.bbox?.width)}×{formatValue(det.bbox?.height)}
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                        {inspection.detections.length === 0 && (
-                          <span className="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-slate-600">
-                            No focus regions available
-                          </span>
+                        ) : (
+                          <span className="font-mono text-[9px] text-slate-600">No detections recorded.</span>
                         )}
                       </div>
-                      <p className="font-sans text-[10px] text-slate-400 leading-relaxed">
-                        {inspection.detections.length
-                          ? `YOLO focused on ${inspection.detections.length} detected component regions with high confidence.`
-                          : "No component regions were highlighted by the model."}
-                      </p>
-                      {inspection.gradCamLayer && (
-                        <p className="font-mono text-[8px] text-slate-500 uppercase tracking-wider">
-                          Grad-CAM Layer: <span className="text-accent/80">{inspection.gradCamLayer}</span>
-                        </p>
-                      )}
                     </div>
 
-                    {/* Explanation */}
-                    <div className="space-y-1.5">
-                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
-                        Explanation
+                    <div className="border-t border-accent/5 pt-3">
+                      <label className="mb-2 font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
+                        XAI Explanation
                       </label>
-                      <p className="font-sans text-[11px] text-slate-300 leading-relaxed">
-                        {inspection.xaiExplanation || "No explanation provided for this inspection."}
-                      </p>
+
+                      {/* EXPLANATION */}
+                      <div className="space-y-1.5">
+                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
+                          Explanation
+                        </label>
+                        <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{explanationText}</p>
+                      </div>
+
+                      {/* MODEL FOCUS */}
+                      <div className="mt-3 space-y-1.5">
+                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
+                          Model Focus
+                        </label>
+                        <div className="relative h-28 rounded-lg border border-accent/5 bg-black/90 overflow-hidden">
+                          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+                          {gradCam?.heatmapUrl ? (
+                            <img src={gradCam.heatmapUrl} alt="Grad-CAM heatmap" className="absolute inset-0 h-full w-full object-contain opacity-60" />
+                          ) : (
+                            inspection.detections.map((det) => (
+                              <div
+                                key={det.id}
+                                className="absolute border border-success/40 bg-success/5 rounded"
+                                style={{
+                                  left: `${det.bbox.left}%`,
+                                  top: `${det.bbox.top}%`,
+                                  width: `${det.bbox.width}%`,
+                                  height: `${det.bbox.height}%`,
+                                }}
+                              >
+                                <span className="absolute -top-2.5 left-0 font-mono text-[6px] text-success font-bold bg-black/80 px-0.5 rounded whitespace-nowrap">{det.id}</span>
+                              </div>
+                            ))
+                          )}
+                          {!gradCam?.heatmapUrl && inspection.detections.length === 0 && (
+                            <span className="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-slate-600">
+                              No focus regions available
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-sans text-[10px] text-slate-400 leading-relaxed">{focusText}</p>
+                        {inspection.gradCamLayer && (
+                          <p className="font-mono text-[8px] text-slate-500 uppercase tracking-wider">
+                            Grad-CAM Layer: <span className="text-accent/80">{inspection.gradCamLayer}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* VISUAL EXPLANATION */}
+                      <div className="mt-3 space-y-1.5">
+                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
+                          Visual Explanation
+                        </label>
+                        <p className="font-mono text-[9px] text-slate-500 leading-relaxed">
+                          {gradCam
+                            ? gradCam.heatmapUrl
+                              ? "Grad-CAM heatmap loaded from the backend — use the viewport Grad-CAM control to toggle the overlay."
+                              : (gradCam.message || "Grad-CAM visualization unavailable from the backend.")
+                            : "Request Grad-CAM from the viewport control to load the heatmap overlay."}
+                        </p>
+                      </div>
+
+                      {/* RATIONALE */}
+                      <div className="mt-3 space-y-1.5">
+                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
+                          Rationale
+                        </label>
+                        <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{rationaleText}</p>
+                      </div>
                     </div>
                   </div>
                 )}

@@ -12,9 +12,11 @@ export const inspectionApi = {
     return data;
   },
 
-  async runInspection() {
-    if (API_CONFIG.useMock) return inspectionMock.runInspection();
-    const { data } = await apiClient.post("/inspection/run");
+  // runInspection(payload) — payload may carry an uploadId so the backend
+  // knows which uploaded PCB image to inspect.
+  async runInspection(payload) {
+    if (API_CONFIG.useMock) return inspectionMock.runInspection(payload);
+    const { data } = await apiClient.post("/inspection/run", payload ?? {});
     return data;
   },
 };

@@ -1,0 +1,39 @@
+import { useState, useEffect } from "react";
+import { cameraApi } from "../services/api/cameraApi";
+
+// Camera connection state from the backend/camera service.
+// Values: CONNECTED | READY | DISCONNECTED | ERROR | INITIALIZING | UNKNOWN.
+// The UI never invents a camera state — it only reflects this result.
+export function useCameraStatus() {
+  const [cameraStatus, setCameraStatus] = useState({
+    status: "INITIALIZING",
+    message: "Checking camera connection...",
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    cameraApi
+      .getStatus()
+      .then((res) => {
+        if (!cancelled) {
+          setCameraStatus({
+            status: res?.status || "UNKNOWN",
+            message: res?.message || "",
+          });
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCameraStatus({ status: "ERROR", message: "Camera status unavailable." });
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { cameraStatus, loading };
+}

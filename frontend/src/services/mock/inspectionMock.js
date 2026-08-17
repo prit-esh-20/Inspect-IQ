@@ -10,7 +10,7 @@ export const inspectionMock = {
     return { ...MOCK_INSPECTION_RESULT };
   },
 
-  async runInspection() {
+  async runInspection(_payload) {
     await delay(500);
     return { ...MOCK_INSPECTION_RESULT };
   },
