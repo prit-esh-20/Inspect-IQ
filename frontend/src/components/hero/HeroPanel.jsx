@@ -123,7 +123,7 @@ export default function HeroPanel() {
           </motion.p>
 
           {/* CTAs */}
-          <div className="mt-10 flex flex-wrap items-center gap-6">
+          <div className="mt-10 flex flex-wrap items-center gap-4">
             <motion.button
               onClick={handleDashboardClick}
               initial={{ opacity: 0, x: -32 }}
@@ -131,7 +131,7 @@ export default function HeroPanel() {
               transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className="group inline-flex items-center justify-center gap-2.5 rounded-xl bg-accent px-10 py-[1.15rem] text-xs font-semibold uppercase tracking-[0.24em] text-primary-bg transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.35)] cursor-pointer"
+              className="group inline-flex h-12 items-center justify-center gap-2.5 rounded-xl bg-accent px-8 text-xs font-semibold uppercase tracking-[0.2em] text-primary-bg transition-shadow duration-300 hover:shadow-[0_0_30px_rgba(50,213,131,0.35)] cursor-pointer"
             >
               <Play className="h-4 w-4 fill-current" />
               Launch Dashboard
@@ -145,7 +145,7 @@ export default function HeroPanel() {
               transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
-              className="inline-flex items-center gap-2.5 rounded-xl border border-white/15 px-8 py-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-white transition-colors duration-300 hover:border-white/30 hover:bg-white/5"
+              className="inline-flex h-12 items-center justify-center gap-2.5 rounded-xl border border-white/15 px-7 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition-colors duration-300 hover:border-white/30 hover:bg-white/5"
             >
               Explore Technology
               <ArrowRight className="h-4 w-4" />
