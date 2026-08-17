@@ -124,15 +124,12 @@ function HourlyTooltip({ active, payload, label }) {
   );
 }
 
-// ── Glowing vertical crosshair ───────────────────────────────────────────
+// ── Subtle vertical crosshair: thin 1px dashed line ─────────────────────
 const GlowCursor = ({ points }) => {
   if (!points || !points.length) return null;
   const x = points[0].x;
   return (
-    <g>
-      <line x1={x} y1={0} x2={x} y2={2000} stroke="rgba(31,227,138,0.1)" strokeWidth={8} />
-      <line x1={x} y1={0} x2={x} y2={2000} stroke="rgba(31,227,138,0.45)" strokeWidth={1} strokeDasharray="4 4" />
-    </g>
+    <line x1={x} y1={0} x2={x} y2={2000} stroke="rgba(31,227,138,0.22)" strokeWidth={1} strokeDasharray="3 3" />
   );
 };
 
