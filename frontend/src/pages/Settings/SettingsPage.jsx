@@ -1,77 +1,86 @@
-import { useState, useEffect } from "react";
 import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
-import Button from "../../components/common/Button";
-import { mockApi } from "../../services/mockApi";
-import { toast, Toaster } from "react-hot-toast";
-import { 
-  Sliders, 
-  Camera, 
-  Layers, 
-  Bell, 
-  Info, 
-  Save, 
-  Cpu, 
-  RefreshCw 
-} from "lucide-react";
+import { useSystemSettings } from "../../hooks/useSystemSettings";
+import { Lock, Sliders, Camera, Layers, Bell, Cpu } from "lucide-react";
+
+function CardHeader({ icon: Icon, title }) {
+  return (
+    <div className="flex items-center gap-2 border-b border-accent/5 pb-2.5">
+      <Icon className="w-4 h-4 text-accent" />
+      <span className="font-display text-[10px] tracking-widest text-[#9ca3af] uppercase font-bold">
+        {title}
+      </span>
+      <span className="ml-auto flex items-center gap-1 font-mono text-[8px] text-slate-500 uppercase tracking-widest">
+        <Lock className="w-2.5 h-2.5" />
+        Read Only
+      </span>
+    </div>
+  );
+}
+
+function ReadOnlyValue({ label, value }) {
+  return (
+    <div className="space-y-2">
+      <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
+        {label}
+      </label>
+      <div className="w-full bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
+        <span className="font-mono text-xs text-white truncate">{value}</span>
+        <Lock className="w-3 h-3 text-slate-500 shrink-0" />
+      </div>
+    </div>
+  );
+}
+
+function ReadOnlyScale({ label, value, display }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between font-mono text-[9px] text-slate-400 font-bold">
+        <span>{label}</span>
+        <span className="flex items-center gap-1 text-accent">
+          <Lock className="w-2.5 h-2.5" />
+          {display}
+        </span>
+      </div>
+      <div className="relative h-1.5 w-full rounded-full bg-slate-900">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-accent/60" style={{ width: `${value}%` }} />
+        <span
+          className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border-2 border-[#050816] bg-accent shadow-[0_0_8px_rgba(50,213,131,0.6)]"
+          style={{ left: `calc(${value}% - 6px)` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatusIndicator({ label, enabled }) {
+  return (
+    <div className="flex items-center justify-between gap-3 font-mono text-[10px] text-slate-400">
+      <span>{label}</span>
+      <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-wider ${
+        enabled
+          ? "border-success/30 bg-success/5 text-success"
+          : "border-slate-800 bg-slate-900/60 text-slate-500"
+      }`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${enabled ? "bg-success" : "bg-slate-600"}`} />
+        {enabled ? "Enabled" : "Disabled"}
+      </span>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
-  const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState(null);
-
-  useEffect(() => {
-    mockApi.getSettings().then((res) => {
-      setSettings(res);
-      setLoading(false);
-    });
-  }, []);
-
-  const handleSave = (e) => {
-    e.preventDefault();
-    if (!settings) return;
-
-    toast.promise(
-      mockApi.updateSettings(settings),
-      {
-        loading: "Saving parameters to Raspberry Pi config files...",
-        success: <b>Configuration updated successfully!</b>,
-        error: <b>Error updating configurations</b>
-      },
-      {
-        style: {
-          background: "#111827",
-          color: "#fff",
-          border: "1px solid rgba(0, 229, 255, 0.3)"
-        }
-      }
-    );
-  };
-
-  const handleInputChange = (key, val) => {
-    setSettings((prev) => ({
-      ...prev,
-      [key]: val
-    }));
-  };
-
-  if (loading || !settings) {
-    return (
-      <div className="flex h-screen pl-56 items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
-        Loading Configurations...
-      </div>
-    );
-  }
+  const { settings, loading, error } = useSystemSettings();
 
   return (
     <AppLayout>
-      <Toaster position="top-right" />
 
-      {/* Main Container */}
-      <main className="flex-1 p-6 md:p-8 space-y-6 max-w-5xl mx-auto w-full">
+      {/* Main Container — shared wrapper for heading + cards */}
+      <main className="flex-1 p-6 md:p-8 space-y-6 max-w-[1200px] mx-auto w-full">
         
         {/* Header Title */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-accent/10 pb-4">
-          <div className="text-left space-y-0.5">
+          <div className="text-left space-y-1">
             <h1 className="font-display text-xl md:text-2xl font-bold text-white uppercase tracking-wider">
               System Settings
             </h1>
@@ -79,216 +88,136 @@ export default function SettingsPage() {
               Embedded YOLO Engine & Camera Node Settings
             </p>
           </div>
+          <span className="self-start md:self-auto flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/5 px-3 py-1.5 font-mono text-[9px] uppercase tracking-widest text-accent font-bold">
+            <Lock className="w-3 h-3" />
+            Read Only
+          </span>
         </div>
 
-        {/* Form Container */}
-        <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-          
-          {/* 1. YOLO Neural Model Config */}
-          <GlassCard className="space-y-4" hoverLift={false}>
-            <div className="flex items-center gap-2 border-b border-accent/5 pb-2">
-              <Sliders className="w-4 h-4 text-accent" />
-              <span className="font-display text-[10px] tracking-widest text-[#9ca3af] uppercase font-bold">
-                YOLO Neural Network Parameters
-              </span>
-            </div>
+        {loading ? (
+          <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
+            Loading system configuration...
+          </div>
+        ) : error ? (
+          <div className="h-64 flex flex-col items-center justify-center gap-2 font-mono text-xs text-slate-500 uppercase tracking-widest">
+            <span className="text-danger">Unable to load system configuration.</span>
+            <span className="text-slate-600 normal-case">Please try again.</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
 
-            <div className="space-y-4">
-              {/* Active Model */}
-              <div className="space-y-1.5">
-                <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
-                  Active YOLO Weights
-                </label>
-                <select
-                  value={settings.activeModel}
-                  onChange={(e) => handleInputChange("activeModel", e.target.value)}
-                  className="w-full bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-accent cursor-pointer font-mono"
-                >
-                  <option value="YOLOv8x-PCB-v3.2">YOLOv8x-PCB-v3.2 (Precision)</option>
-                  <option value="YOLOv8n-PCB-nano">YOLOv8n-PCB-nano (High FPS)</option>
-                  <option value="YOLOv5s-PCB-v1.0">YOLOv5s-PCB-v1.0 (Legacy)</option>
-                </select>
-              </div>
+            {/* 1. YOLO Neural Model Config */}
+            <GlassCard hoverLift={false}>
+              <div className="space-y-5">
+                <CardHeader icon={Sliders} title="YOLO Neural Network Parameters" />
 
-              {/* Confidence threshold */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between font-mono text-[9px] text-slate-400 font-bold">
-                  <span>CONFIDENCE THRESHOLD</span>
-                  <span className="text-accent">{Math.round(settings.yoloConfidence * 100)}%</span>
+                <div className="space-y-5">
+                  <ReadOnlyValue label="Active YOLO Weights" value={settings.yolo.weights} />
+                  <ReadOnlyScale
+                    label="Confidence Threshold"
+                    value={Math.round(settings.yolo.confidenceThreshold * 100)}
+                    display={`${Math.round(settings.yolo.confidenceThreshold * 100)}%`}
+                  />
+                  <ReadOnlyScale
+                    label="IoU Overlap Threshold"
+                    value={Math.round(settings.yolo.iouThreshold * 100)}
+                    display={`${Math.round(settings.yolo.iouThreshold * 100)}%`}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="0.3"
-                  max="0.95"
-                  step="0.05"
-                  value={settings.yoloConfidence}
-                  onChange={(e) => handleInputChange("yoloConfidence", parseFloat(e.target.value))}
-                  className="w-full accent-accent h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer"
-                />
               </div>
+            </GlassCard>
 
-              {/* IOU threshold */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between font-mono text-[9px] text-slate-400 font-bold">
-                  <span>IOU OVERLAP THRESHOLD</span>
-                  <span className="text-accent">{Math.round(settings.iouThreshold * 100)}%</span>
+            {/* 2. Optical Camera Config */}
+            <GlassCard hoverLift={false}>
+              <div className="space-y-5">
+                <CardHeader icon={Camera} title="Camera Capture Nodes" />
+
+                <div className="space-y-5">
+                  <ReadOnlyValue label="Camera Video Node" value={settings.camera.videoNode} />
+                  <ReadOnlyScale
+                    label="Target Stream FPS"
+                    value={Math.round(((settings.camera.targetFps - 10) / 50) * 100)}
+                    display={`${settings.camera.targetFps} FPS`}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="0.2"
-                  max="0.8"
-                  step="0.05"
-                  value={settings.iouThreshold}
-                  onChange={(e) => handleInputChange("iouThreshold", parseFloat(e.target.value))}
-                  className="w-full accent-accent h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer"
-                />
               </div>
-            </div>
-          </GlassCard>
+            </GlassCard>
 
-          {/* 2. Optical Camera Config */}
-          <GlassCard className="space-y-4" hoverLift={false}>
-            <div className="flex items-center gap-2 border-b border-accent/5 pb-2">
-              <Camera className="w-4 h-4 text-accent" />
-              <span className="font-display text-[10px] tracking-widest text-[#9ca3af] uppercase font-bold">
-                Camera Capture Nodes
-              </span>
-            </div>
+            {/* 3. Explainable AI Heatmap configuration */}
+            <GlassCard hoverLift={false}>
+              <div className="space-y-5">
+                <CardHeader icon={Layers} title="Explainability (Grad-CAM) Layout" />
 
-            <div className="space-y-4">
-              {/* Selected Node */}
-              <div className="space-y-1.5">
-                <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
-                  Camera Video Node
-                </label>
-                <select
-                  defaultValue="/dev/video0"
-                  className="w-full bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-accent cursor-pointer font-mono"
-                >
-                  <option value="/dev/video0">/dev/video0 - Pi Cam Module (CSI)</option>
-                  <option value="/dev/video1">/dev/video1 - USB Logitech Cam</option>
-                  <option value="sim">Virtual Simulation Pipeline</option>
-                </select>
-              </div>
-
-              {/* Target FPS */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between font-mono text-[9px] text-slate-400 font-bold">
-                  <span>TARGET STREAM FPS</span>
-                  <span className="text-accent">{settings.cameraFps} FPS</span>
+                <div className="space-y-5">
+                  <ReadOnlyValue label="Target Conv Layer Name" value={settings.gradCam.targetLayer} />
+                  <ReadOnlyScale
+                    label="Default Overlay Transparency"
+                    value={Math.round(settings.gradCam.overlayTransparency * 100)}
+                    display={`${Math.round(settings.gradCam.overlayTransparency * 100)}%`}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="60"
-                  step="5"
-                  value={settings.cameraFps}
-                  onChange={(e) => handleInputChange("cameraFps", parseInt(e.target.value))}
-                  className="w-full accent-accent h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer"
-                />
               </div>
-            </div>
-          </GlassCard>
+            </GlassCard>
 
-          {/* 3. Explainable AI Heatmap configuration */}
-          <GlassCard className="space-y-4" hoverLift={false}>
-            <div className="flex items-center gap-2 border-b border-accent/5 pb-2">
-              <Layers className="w-4 h-4 text-accent" />
-              <span className="font-display text-[10px] tracking-widest text-[#9ca3af] uppercase font-bold">
-                Explainability (Grad-CAM) Layout
-              </span>
-            </div>
+            {/* 4. Notification Alerts Config */}
+            <GlassCard hoverLift={false}>
+              <div className="space-y-5">
+                <CardHeader icon={Bell} title="Hardware Alerts & Logging" />
 
-            <div className="space-y-4">
-              {/* Target convolutional Layer */}
-              <div className="space-y-1.5">
-                <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
-                  Target Conv Layer Name
-                </label>
-                <input
-                  type="text"
-                  defaultValue="model.model.22.cv3.d1"
-                  className="w-full bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2.5 font-mono text-xs text-white focus:outline-none focus:border-accent"
-                />
-              </div>
-
-              {/* Heatmap Default Opacity */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between font-mono text-[9px] text-slate-400 font-bold">
-                  <span>DEFAULT OVERLAY TRANSPARENCY</span>
-                  <span className="text-accent">{Math.round(settings.gradCamOpacity * 100)}%</span>
+                <div className="space-y-3">
+                  <StatusIndicator
+                    label="Trigger warning audio alarm on defect:"
+                    enabled={settings.alerts.warningAudio}
+                  />
+                  <StatusIndicator
+                    label="Auto-archive failing PCB captures:"
+                    enabled={settings.alerts.autoArchiveFailures}
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="0.2"
-                  max="0.9"
-                  step="0.05"
-                  value={settings.gradCamOpacity}
-                  onChange={(e) => handleInputChange("gradCamOpacity", parseFloat(e.target.value))}
-                  className="w-full accent-accent h-1 bg-slate-900 rounded-lg appearance-none cursor-pointer"
-                />
               </div>
-            </div>
-          </GlassCard>
+            </GlassCard>
 
-          {/* 4. Notification Alerts Config */}
-          <GlassCard className="space-y-4" hoverLift={false}>
-            <div className="flex items-center gap-2 border-b border-accent/5 pb-2">
-              <Bell className="w-4 h-4 text-accent" />
-              <span className="font-display text-[10px] tracking-widest text-[#9ca3af] uppercase font-bold">
-                Hardware Alerts & Logging
-              </span>
-            </div>
+            {/* 5. Raspberry Pi Hardware Environment */}
+            <div className="md:col-span-2">
+              <GlassCard className="!p-6" hoverLift={false}>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3 border-b border-accent/5 pb-3">
+                    <div className="p-2.5 bg-accent/5 rounded-lg border border-accent/20">
+                      <Cpu className="w-5 h-5 text-accent animate-pulse" />
+                    </div>
+                    <div className="text-left">
+                      <span className="font-display text-[10px] tracking-widest text-[#9ca3af] uppercase font-bold block">
+                        Raspberry Pi Hardware Environment
+                      </span>
+                      <span className="font-mono text-[8px] text-slate-500 uppercase tracking-widest">
+                        System Defined &middot; Read Only
+                      </span>
+                    </div>
+                  </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between font-mono text-[10px] text-slate-400">
-                <span>Trigger warning audio alarm on defect:</span>
-                <input
-                  type="checkbox"
-                  checked={settings.notifications}
-                  onChange={(e) => handleInputChange("notifications", e.target.checked)}
-                  className="accent-accent w-4 h-4 cursor-pointer"
-                />
-              </div>
-
-              <div className="flex items-center justify-between font-mono text-[10px] text-slate-400">
-                <span>Auto-archive failing PCB captures:</span>
-                <input type="checkbox" defaultChecked className="accent-accent w-4 h-4 cursor-pointer" />
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* 5. Raspberry Pi Telemetry (Col: 2) */}
-          <div className="md:col-span-2">
-            <GlassCard className="flex flex-col md:flex-row items-center justify-between gap-6" hoverLift={false}>
-              
-              <div className="flex items-center gap-4 text-left">
-                <div className="p-3 bg-accent/5 rounded-xl border border-accent/20">
-                  <Cpu className="w-8 h-8 text-accent animate-pulse" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="font-display text-xs uppercase tracking-wider text-white font-bold">
-                    Raspberry Pi Hardware Environment
-                  </h4>
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[10px] font-mono text-slate-400">
-                    <span>SOC MODEL: Broadcom BCM2711</span>
-                    <span>ARCHITECTURE: AArch64 (64-bit)</span>
-                    <span>OS DISTRO: Debian Bullseye (6.1 LTS)</span>
-                    <span>MEM SIZE: 4.0 GB LPDDR4</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+                    {[
+                      { label: "SOC Model", value: settings.hardware.socModel },
+                      { label: "Architecture", value: settings.hardware.architecture },
+                      { label: "OS Distribution", value: settings.hardware.os },
+                      { label: "Memory Size", value: settings.hardware.memory },
+                    ].map((item) => (
+                      <div key={item.label} className="space-y-1.5">
+                        <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
+                          {item.label}
+                        </label>
+                        <div className="w-full bg-[#050816]/60 border border-accent/15 rounded-lg px-3 py-2.5 font-mono text-xs text-white">
+                          {item.value}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              </GlassCard>
+            </div>
 
-              {/* Action save button */}
-              <Button type="submit" variant="primary" className="flex items-center gap-2 w-full md:w-auto font-bold shrink-0 justify-center">
-                <Save className="w-4 h-4" />
-                Save Configurations
-              </Button>
-
-            </GlassCard>
           </div>
-
-        </form>
+        )}
 
       </main>
     </AppLayout>

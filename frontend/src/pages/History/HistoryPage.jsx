@@ -5,18 +5,12 @@ import CustomTable from "../../components/common/CustomTable";
 import StatusBadge from "../../components/common/StatusBadge";
 import Modal from "../../components/common/Modal";
 import GlassCard from "../../components/cards/GlassCard";
-import Button from "../../components/common/Button";
-import { useHistory } from "../../hooks/useHistory";
+import { useInspectionHistory, fetchInspectionDetails } from "../../hooks/useInspectionHistory";
+import { useDebounce } from "../../hooks/useDebounce";
+import { useNotifications } from "../../context/NotificationContext";
 import { formatDate, formatDuration, formatConfidence } from "../../utils/formatters";
 import { 
-  Eye, 
-  Calendar, 
-  User, 
-  Cpu, 
-  AlertTriangle, 
-  Layers, 
-  CheckCircle2,
-  XCircle
+  Layers
 } from "lucide-react";
 
 export default function HistoryPage() {
@@ -28,12 +22,16 @@ export default function HistoryPage() {
   const [sortBy, setSortBy] = useState("timestamp");
   const [order, setOrder] = useState("desc");
 
+  // Debounce search so the API is not hit on every keystroke
+  const debouncedSearch = useDebounce(search, 400);
+
   const filters = useMemo(
-    () => ({ search, status, defect, page, sortBy, order }),
-    [search, status, defect, page, sortBy, order],
+    () => ({ search: debouncedSearch, status, defect, page, sortBy, order }),
+    [debouncedSearch, status, defect, page, sortBy, order],
   );
 
-  const { data, total, pages, loading, error } = useHistory(filters);
+  const { records, total, pages, loading, error, refetch } = useInspectionHistory(filters);
+  const { notify } = useNotifications();
 
   // Detail Modal State
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -56,9 +54,15 @@ export default function HistoryPage() {
     setPage(1);
   };
 
-  const viewDetails = (record) => {
-    setSelectedRecord(record);
-    setIsModalOpen(true);
+  // Retrieve the complete inspection record from the API before opening it
+  const viewDetails = async (record) => {
+    try {
+      const full = await fetchInspectionDetails(record.id);
+      setSelectedRecord(full);
+      setIsModalOpen(true);
+    } catch {
+      notify({ type: "error", title: "Load Failed", message: "Unable to load inspection details." });
+    }
   };
 
   // Table Headers definitions
@@ -156,18 +160,23 @@ export default function HistoryPage() {
             Loading inspection history...
           </div>
         ) : error ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-2 font-mono text-xs text-slate-500 uppercase tracking-widest">
-            <span className="text-danger">Unable to retrieve inspection history.</span>
-            <span className="text-slate-600 normal-case">Please try again.</span>
+          <div className="h-64 flex flex-col items-center justify-center gap-3 font-mono text-xs text-slate-500 uppercase tracking-widest">
+            <span className="text-danger">Unable to load inspection history.</span>
+            <button
+              onClick={refetch}
+              className="px-3 py-1.5 bg-accent/5 hover:bg-accent/15 border border-accent/15 hover:border-accent/40 rounded-lg text-accent hover:text-white transition-all font-display text-[9px] uppercase tracking-wider font-bold cursor-pointer"
+            >
+              Retry
+            </button>
           </div>
-        ) : data.length === 0 ? (
+        ) : records.length === 0 ? (
           <div className="h-64 flex items-center justify-center font-mono text-xs text-slate-500 uppercase tracking-widest">
-            No inspection records match the current filters.
+            No inspection records found.
           </div>
         ) : (
           <CustomTable
             headers={headers}
-            data={data}
+            data={records}
             sortBy={sortBy}
             order={order}
             onSort={handleSort}

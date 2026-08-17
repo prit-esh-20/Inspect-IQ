@@ -1,5 +1,5 @@
 import { Search, Filter, RefreshCw } from "lucide-react";
-import { DEFECT_TYPES } from "../../utils/mockData";
+import { DEFECT_TYPES } from "../../services/mock/mockData";
 
 export default function SearchBar({
   searchQuery,

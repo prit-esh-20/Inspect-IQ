@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { settingsApi } from "../services/api/settingsApi";
 
-export function useSettings() {
+export function useSystemSettings() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,11 +27,5 @@ export function useSettings() {
     };
   }, []);
 
-  const updateSettings = useCallback(async (next) => {
-    const saved = await settingsApi.updateSettings(next);
-    setSettings(saved);
-    return saved;
-  }, []);
-
-  return { settings, loading, error, updateSettings };
+  return { settings, loading, error };
 }

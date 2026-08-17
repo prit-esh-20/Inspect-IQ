@@ -507,13 +507,29 @@ export const MOCK_ANALYTICS = {
 
 // ---- Settings -------------------------------------------------------------
 export const MOCK_SETTINGS = {
-  yoloConfidence: 0.65,
-  iouThreshold: 0.45,
-  gradCamOpacity: 0.6,
-  cameraFps: 30,
-  inspectionSpeed: "Normal",
-  activeModel: "YOLOv8x-PCB-v3.2",
-  notifications: true,
+  yolo: {
+    weights: "YOLOv8x-PCB-v3.2",
+    confidenceThreshold: 0.65,
+    iouThreshold: 0.45,
+  },
+  camera: {
+    videoNode: "/dev/video0",
+    targetFps: 30,
+  },
+  gradCam: {
+    targetLayer: "model.model.22.cv3.d1",
+    overlayTransparency: 0.6,
+  },
+  alerts: {
+    warningAudio: true,
+    autoArchiveFailures: true,
+  },
+  hardware: {
+    socModel: "Broadcom BCM2711",
+    architecture: "AArch64 (64-bit)",
+    os: "Debian Bullseye (6.1 LTS)",
+    memory: "4.0 GB LPDDR4",
+  },
 };
 
 // ---- Reports --------------------------------------------------------------

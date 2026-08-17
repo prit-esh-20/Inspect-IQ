@@ -14,7 +14,7 @@ import {
   Play, Camera,
   AlertTriangle, CheckCircle, Clock, Bell, Upload, FileText, Download, Image,
   Search, ChevronDown, Settings, LogOut, User, X,
-  Scan, Layers, GitBranch, Info,
+  Scan, Layers, GitBranch, Info, Sparkles,
 } from "lucide-react";
 
 const containerVariants = {
@@ -310,17 +310,17 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {/* ---- MAIN GRID ---- */}
-          <div className="mx-auto w-full space-y-5">
+          {/* ---- INSPECTION GRID: LIVE VIEWPORT + XAI ANALYSIS ---- */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[65fr_35fr] items-start">
 
-            {/* ---- CAMERA PANEL (centered) ---- */}
+            {/* ---- LEFT: LIVE INSPECTION VIEWPORT ---- */}
             <motion.div variants={itemVariants} className="space-y-4">
-              <GlassCard className="mx-auto flex w-[min(62%,1020px)] flex-col" hoverLift={false}>
+              <GlassCard className="flex flex-col" hoverLift={false}>
                 {/* Camera header */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-accent/5 pb-3">
                   <div className="flex items-center gap-2">
                     <Camera className="h-4 w-4 text-accent" />
-                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Inspection Viewport</span>
+                    <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">Live Inspection Viewport</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -346,7 +346,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Viewport (camera monitor) */}
-                <div className="relative my-4 flex h-[min(55vh,580px)] w-full items-center justify-center overflow-hidden rounded-xl border border-accent/5 bg-black/95">
+                <div className="relative my-4 flex h-[min(48vh,520px)] w-full items-center justify-center overflow-hidden rounded-xl border border-accent/5 bg-black/95">
                   {/* Grid */}
                   <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "30px 30px" }} />
 
@@ -502,7 +502,7 @@ export default function DashboardPage() {
                     transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                     className="overflow-hidden"
                   >
-                    <GlassCard hoverLift={false} className="mx-auto w-[min(62%,1020px)]">
+                    <GlassCard hoverLift={false}>
                       <div className="flex items-center justify-between border-b border-accent/5 pb-2">
                         <div className="flex items-center gap-2">
                           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-success/15 text-[9px] font-bold text-success">{selectedComponent.name.charAt(0)}</span>
@@ -552,6 +552,112 @@ export default function DashboardPage() {
                 )}
               </AnimatePresence>
             </motion.div>
+
+            {/* ---- RIGHT: XAI INSPECTION ANALYSIS ---- */}
+            <motion.div variants={itemVariants}>
+              <GlassCard className="!p-5" hoverLift={false}>
+                <div className="flex items-center gap-2 border-b border-accent/5 pb-2.5">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  <span className="font-display text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    XAI Inspection Analysis
+                  </span>
+                </div>
+
+                {!inspection ? (
+                  <div className="h-44 flex items-center justify-center font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+                    XAI analysis unavailable for this inspection.
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Model Confidence */}
+                    <div className="space-y-1.5">
+                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
+                        Model Confidence
+                      </label>
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-mono text-2xl font-extrabold text-white">{inspection.confidence}%</span>
+                      </div>
+                      <div className="relative h-1.5 w-full rounded-full bg-slate-900">
+                        <div
+                          className="absolute inset-y-0 left-0 rounded-full bg-accent"
+                          style={{ width: `${Math.min(inspection.confidence ?? 0, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Detection Result */}
+                    <div className="space-y-1.5">
+                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
+                        Detection Result
+                      </label>
+                      <StatusBadge status={inspection.status} />
+                    </div>
+
+                    {/* Defect Analysis */}
+                    <div className="space-y-1.5">
+                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
+                        Defect Analysis
+                      </label>
+                      <p className="font-sans text-[11px] text-slate-300 leading-relaxed">
+                        {inspection.defects?.length
+                          ? `Potential ${inspection.defects.map((d) => d.label ?? d.type ?? "defect").join(", ")} detected within the inspected regions.`
+                          : "No structural defects detected."}
+                      </p>
+                    </div>
+
+                    {/* Model Focus */}
+                    <div className="space-y-1.5">
+                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
+                        Model Focus
+                      </label>
+                      <div className="relative h-28 rounded-lg border border-accent/5 bg-black/90 overflow-hidden">
+                        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+                        {inspection.detections.map((det) => (
+                          <div
+                            key={det.id}
+                            className="absolute border border-success/40 bg-success/5 rounded"
+                            style={{
+                              left: `${det.bbox.left}%`,
+                              top: `${det.bbox.top}%`,
+                              width: `${det.bbox.width}%`,
+                              height: `${det.bbox.height}%`,
+                            }}
+                          >
+                            <span className="absolute -top-2.5 left-0 font-mono text-[6px] text-success font-bold bg-black/80 px-0.5 rounded whitespace-nowrap">{det.id}</span>
+                          </div>
+                        ))}
+                        {inspection.detections.length === 0 && (
+                          <span className="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-slate-600">
+                            No focus regions available
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-sans text-[10px] text-slate-400 leading-relaxed">
+                        {inspection.detections.length
+                          ? `YOLO focused on ${inspection.detections.length} detected component regions with high confidence.`
+                          : "No component regions were highlighted by the model."}
+                      </p>
+                      {inspection.gradCamLayer && (
+                        <p className="font-mono text-[8px] text-slate-500 uppercase tracking-wider">
+                          Grad-CAM Layer: <span className="text-accent/80">{inspection.gradCamLayer}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Explanation */}
+                    <div className="space-y-1.5">
+                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
+                        Explanation
+                      </label>
+                      <p className="font-sans text-[11px] text-slate-300 leading-relaxed">
+                        {inspection.xaiExplanation || "No explanation provided for this inspection."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </GlassCard>
+            </motion.div>
+
           </div>
         </motion.main>
     </AppLayout>

@@ -2,9 +2,10 @@ import { MOCK_INSPECTION_HISTORY } from "./mockData";
 
 const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Deterministic history service — filters a fixed static dataset.
-export const historyMock = {
-  async getHistory({ search = "", status = "ALL", defect = "ALL", page = 1, limit = 10, sortBy = "timestamp", order = "desc" } = {}) {
+// Deterministic inspection history service — filters a fixed static dataset.
+// Never generates, rotates, or mutates records.
+export const inspectionHistoryMock = {
+  async getInspectionHistory({ search = "", status = "ALL", defect = "ALL", page = 1, pageSize = 10, limit, sortBy = "timestamp", order = "desc" } = {}) {
     await delay(400);
     let records = [...MOCK_INSPECTION_HISTORY];
 
@@ -28,19 +29,29 @@ export const historyMock = {
     });
 
     const total = records.length;
-    const offset = (page - 1) * limit;
+    const size = pageSize ?? limit ?? 10;
+    const offset = (page - 1) * size;
 
     return {
-      records: records.slice(offset, offset + limit),
+      records: records.slice(offset, offset + size),
+      totalRecords: total,
       total,
-      pages: Math.ceil(total / limit),
+      pages: Math.ceil(total / size),
+      pageSize: size,
       currentPage: page,
     };
   },
 
-  async getInspectionById(id) {
+  async getInspectionDetails(id) {
     await delay(300);
-    const item = MOCK_INSPECTION_HISTORY.find((r) => r.id === id);
+    const item = MOCK_INSPECTION_HISTORY.find((r) => r.id === id || r.pcbId === id);
+    if (!item) throw new Error("Record not found");
+    return { ...item };
+  },
+
+  async getInspectionByPcbId(pcbId) {
+    await delay(300);
+    const item = MOCK_INSPECTION_HISTORY.find((r) => r.id === pcbId || r.pcbId === pcbId);
     if (!item) throw new Error("Record not found");
     return { ...item };
   },
