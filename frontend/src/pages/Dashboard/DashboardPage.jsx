@@ -76,12 +76,14 @@ export default function DashboardPage() {
     errorMessage: inspectionError,
     runInspection,
     refreshInspection,
+    resetInspection,
   } = useInspection();
 
   const {
     uploadedImage,
     uploading: uploadLoading,
     uploadImage,
+    clearUpload,
   } = useUpload();
 
   const {
@@ -121,6 +123,7 @@ export default function DashboardPage() {
   const searchRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageRef = useRef(null);
+  const [imageDims, setImageDims] = useState(null);
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -152,6 +155,20 @@ export default function DashboardPage() {
     clearXai();
     setShowGradCam(false);
   }, [inspection?.inspectionId, clearXai]);
+
+  // Reset measured dimensions whenever a new image is uploaded.
+  useEffect(() => {
+    setImageDims(null);
+  }, [uploadedImage?.url]);
+
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    if (naturalWidth && naturalHeight) {
+      setImageDims({ width: naturalWidth, height: naturalHeight });
+    }
+  };
+
+  const imageAspect = imageDims ? `${imageDims.width} / ${imageDims.height}` : "600 / 400";
 
   const formatTime = (d) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const formatDate = (d) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
@@ -189,13 +206,26 @@ export default function DashboardPage() {
       if (!file) return;
       setActionStatus(null);
       const result = await uploadImage(file);
-      if (!result.ok) {
+      if (result.ok) {
+        // A new image means the previous result no longer applies — clear it
+        // so no stale detections/status render on top of the new image.
+        resetInspection();
+        setSelectedComponent(null);
+      } else {
         notify({ type: "error", title: "Unable to upload PCB image.", message: result.message });
         setActionStatus({ type: "error", text: result.message });
       }
     },
-    [uploadImage, notify],
+    [uploadImage, resetInspection, notify],
   );
+
+  const handleDiscardImage = useCallback(() => {
+    clearUpload();
+    resetInspection();
+    setSelectedComponent(null);
+    setActionStatus({ type: "success", text: "Uploaded image discarded." });
+    notify({ type: "success", title: "Image discarded.", message: "Uploaded PCB image removed. Viewport reset." });
+  }, [clearUpload, resetInspection, notify]);
 
   const handleGenerateReport = useCallback(async () => {
     setActionStatus(null);
@@ -288,6 +318,19 @@ export default function DashboardPage() {
     : "None";
 
   const cameraBadge = CAMERA_BADGE[cameraStatus.status] || CAMERA_BADGE.UNKNOWN;
+
+  // Backend may report that the uploaded image is not a PCB at all.
+  const isNotPcb =
+    !!inspection &&
+    (inspection.isPcb === false || String(inspection.status || "").toUpperCase() === "NOT_PCB");
+
+  // Bottom status bar presentation per inspection lifecycle state.
+  const hudStatus = {
+    [INSPECTION_STATE.READY]: { text: "READY", cls: "text-slate-400" },
+    [INSPECTION_STATE.STARTING]: { text: "INSPECTING", cls: "text-warning" },
+    [INSPECTION_STATE.INSPECTING]: { text: "INSPECTING", cls: "text-warning" },
+    [INSPECTION_STATE.ERROR]: { text: "INSPECTION ERROR", cls: "text-danger" },
+  }[inspectionState];
 
   // Button presentation states
   const inspectionButton = {
@@ -468,6 +511,19 @@ export default function DashboardPage() {
                 {uploadLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />}
                 {uploadLoading ? "Uploading..." : "Upload PCB Image"}
               </motion.button>
+
+              {/* DISCARD UPLOADED IMAGE */}
+              {uploadedImage && (
+                <motion.button
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleDiscardImage}
+                  className="group inline-flex items-center gap-2 rounded-xl border border-danger/25 bg-danger/[0.06] px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest text-danger/90 backdrop-blur-sm transition-all duration-300 hover:border-danger/50 hover:bg-danger/10 hover:text-danger hover:shadow-[0_0_20px_rgba(255,77,109,0.1)]"
+                >
+                  <X className="h-3.5 w-3.5 transition-transform duration-300 group-hover:rotate-90" />
+                  Discard Image
+                </motion.button>
+              )}
 
               {/* GENERATE REPORT */}
               <motion.button
@@ -697,6 +753,15 @@ export default function DashboardPage() {
                         </div>
                       )}
 
+                      {/* Uploaded image — image only, no overlay until a real inspection result exists */}
+                      {!inspection && uploadedImage && (
+                        <div className="absolute inset-x-0 bottom-10 z-10 flex justify-center">
+                          <span className="rounded-lg border border-accent/10 bg-black/70 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.25em] text-slate-400 backdrop-blur-sm">
+                            Awaiting inspection — press Start Inspection
+                          </span>
+                        </div>
+                      )}
+
                       {/* Inspection state overlay */}
                       {(inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) && (
                         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/60 backdrop-blur-sm">
@@ -716,19 +781,20 @@ export default function DashboardPage() {
                         </div>
                       )}
 
-                      {/* Uploaded PCB image — the actual selected file */}
-                      {uploadedImage && (
-                        <img
-                          ref={imageRef}
-                          src={uploadedImage.url}
-                          alt={`Uploaded PCB: ${uploadedImage.name}`}
-                          className="absolute inset-0 z-[5] h-full w-full object-contain"
-                        />
-                      )}
-
-                      {/* PCB SVG - contained with margins */}
-                      {inspection && !uploadedImage && (
-                        <svg className="absolute inset-0 m-auto max-h-[92%] max-w-[92%] opacity-70" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Image container — PCB frame + aligned overlay layers */}
+                      {(uploadedImage || (inspection && !uploadedImage)) && (
+                        <div className="relative z-[5] flex h-full w-full items-center justify-center">
+                          <div className="relative w-full max-h-full" style={{ aspectRatio: imageAspect }}>
+                            {uploadedImage ? (
+                              <img
+                                ref={imageRef}
+                                src={uploadedImage.url}
+                                alt={`Uploaded PCB: ${uploadedImage.name}`}
+                                onLoad={handleImageLoad}
+                                className="block h-full w-full object-contain"
+                              />
+                            ) : (
+                              <svg className="block h-full w-full opacity-70" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <rect x="30" y="20" width="540" height="360" rx="12" stroke="#32d583" strokeWidth="1.5" opacity="0.5" />
                           <circle cx="55" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
                           <circle cx="545" cy="45" r="6" stroke="#32d583" strokeWidth="1" opacity="0.4" />
@@ -755,56 +821,73 @@ export default function DashboardPage() {
                           <text x="72" y="55" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C12</text>
                           <text x="72" y="285" fill="#32d583" fontSize="6" fontFamily="monospace" opacity="0.5">C13</text>
                           <text x="122" y="65" fill="#32d583" fontSize="5" fontFamily="monospace" opacity="0.4">R8</text>
-                        </svg>
-                      )}
+                              </svg>
+                            )}
 
-                      {/* Grad-CAM overlay — only rendered from real backend heatmap data */}
-                      {showGradCam && gradCam?.heatmapUrl && (
-                        <img
-                          src={gradCam.heatmapUrl}
-                          alt="Grad-CAM heatmap"
-                          className="pointer-events-none absolute inset-0 z-10 h-full w-full object-contain opacity-60"
-                        />
-                      )}
+                            {/* Non-PCB result — show the verdict, never fake detections */}
+                            {isNotPcb ? (
+                              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/40">
+                                <span className="font-mono text-[11px] tracking-[0.3em] text-danger uppercase font-bold">Not a PCB</span>
+                                <span className="max-w-[70%] text-center font-mono text-[9px] text-slate-400">
+                                  Uploaded image could not be identified as a valid PCB.
+                                </span>
+                              </div>
+                            ) : (
+                              <>
+                                {/* Grad-CAM overlay — only rendered from real backend heatmap data */}
+                                {showGradCam && gradCam?.heatmapUrl && (
+                                  <img
+                                    src={gradCam.heatmapUrl}
+                                    alt="Grad-CAM heatmap"
+                                    className="pointer-events-none absolute inset-0 z-10 h-full w-full object-contain opacity-60"
+                                  />
+                                )}
 
-                      {/* YOLO detection boxes */}
-                      <AnimatePresence>
-                        {inspection && !summaryView && inspection.detections.map((det) => (
-                          <motion.div
-                            key={det.id}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.4 }}
-                            className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
-                            style={{
-                              left: `${det.bbox.left}%`,
-                              top: `${det.bbox.top}%`,
-                              width: `${det.bbox.width}%`,
-                              height: `${det.bbox.height}%`,
-                            }}
-                            onClick={() => handleComponentClick(det)}
-                          >
-                            <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">{det.id} {det.confidence}%</span>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-
-                      {/* Bottom HUD - simplified */}
-                      {inspection && (
-                        <div className="absolute bottom-2 left-2 right-2 z-20 flex items-center justify-between gap-2 rounded-lg bg-black/80 border border-accent/15 px-3 py-1.5 font-mono text-[9px] backdrop-blur-sm">
-                          <div className="flex items-center gap-3">
-                            <span className="text-slate-500">Board:</span>
-                            <span className="font-bold text-white">{inspection.pcbId}</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <StatusBadge status={inspection.status} />
-                            <span className="text-slate-500">
-                              Conf: <span className="text-white">{inspection.confidence}%</span>
-                            </span>
+                                {/* YOLO detection boxes — only when the backend returned real detections */}
+                                <AnimatePresence>
+                                  {inspection && !summaryView && inspection.detections?.length > 0 && inspection.detections.map((det) => (
+                                    <motion.div
+                                      key={det.id}
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0 }}
+                                      transition={{ duration: 0.4 }}
+                                      className="absolute border-2 border-success/50 bg-success/5 rounded cursor-pointer"
+                                      style={{
+                                        left: `${det.bbox.left}%`,
+                                        top: `${det.bbox.top}%`,
+                                        width: `${det.bbox.width}%`,
+                                        height: `${det.bbox.height}%`,
+                                      }}
+                                      onClick={() => handleComponentClick(det)}
+                                    >
+                                      <span className="absolute -top-3.5 left-0 font-mono text-[7px] text-success font-bold bg-black/80 px-1 rounded whitespace-nowrap">{det.id} {det.confidence}%</span>
+                                    </motion.div>
+                                  ))}
+                                </AnimatePresence>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
+
+                      {/* Bottom HUD — state driven */}
+                      <div className="absolute bottom-2 left-2 right-2 z-20 flex items-center justify-between gap-2 rounded-lg bg-black/80 border border-accent/15 px-3 py-1.5 font-mono text-[9px] backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                          <span className="text-slate-500">Board:</span>
+                          <span className="font-bold text-white">{inspection?.pcbId || "—"}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {hudStatus ? (
+                            <span className={`font-bold uppercase tracking-wider ${hudStatus.cls}`}>{hudStatus.text}</span>
+                          ) : (
+                            <StatusBadge status={inspection.status} />
+                          )}
+                          <span className="text-slate-500">
+                            Conf: <span className="text-white">{inspection?.confidence != null ? `${inspection.confidence}%` : "—"}</span>
+                          </span>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>

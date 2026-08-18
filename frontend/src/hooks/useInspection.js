@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { inspectionApi } from "../services/api/inspectionApi";
 import { toErrorMessage } from "../utils/apiError";
 
@@ -33,12 +33,14 @@ const normalizeInspection = (response) => {
   return { inspection: response, state: INSPECTION_STATE.COMPLETED };
 };
 
-// Centralized inspection state. Loads the latest result once on mount;
-// runInspection() only fires when the user explicitly requests one and is
-// guarded so a single run request can never be triggered twice.
+// Centralized inspection state. Results are NEVER auto-loaded: an inspection
+// result only exists after the user explicitly requests one via
+// runInspection() (or refreshInspection() while the backend is processing).
+// runInspection() is guarded so a single run request can never be triggered
+// twice.
 export function useInspection() {
   const [inspection, setInspection] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [state, setState] = useState(INSPECTION_STATE.READY);
   const runningRef = useRef(false);
@@ -105,9 +107,15 @@ export function useInspection() {
     }
   }, [state]);
 
-  useEffect(() => {
-    fetchInspection();
-  }, [fetchInspection]);
+  // Clears any inspection result/error and returns to the idle READY state.
+  // Used when the uploaded PCB image is discarded.
+  const resetInspection = useCallback(() => {
+    setInspection(null);
+    setError(null);
+    setState(INSPECTION_STATE.READY);
+    setLoading(false);
+    runningRef.current = false;
+  }, []);
 
   return {
     inspection,
@@ -118,5 +126,6 @@ export function useInspection() {
     runInspection,
     refreshInspection,
     fetchInspection,
+    resetInspection,
   };
 }
