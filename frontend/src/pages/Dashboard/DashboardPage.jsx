@@ -60,11 +60,6 @@ const CAMERA_BADGE = {
   UNKNOWN: { dot: "bg-slate-500", label: "Camera Unknown", cls: "text-slate-400 border-white/10 bg-white/5" },
 };
 
-const formatValue = (value) => {
-  if (value === null || value === undefined) return "—";
-  return `${value}`;
-};
-
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const { stats } = useDashboard();
@@ -289,40 +284,45 @@ export default function DashboardPage() {
     inspection?.verificationDetails?.position?.every((p) => p.status === "PASS") &&
     inspection?.verificationDetails?.orientation?.every((p) => p.status === "PASS");
 
-  const presenceChecks = inspection?.verificationDetails?.presence ?? [];
-  const positionChecks = inspection?.verificationDetails?.position ?? [];
-  const orientationChecks = inspection?.verificationDetails?.orientation ?? [];
-  const failedChecks = [
-    ...presenceChecks.filter((c) => c.status === "FAIL"),
-    ...positionChecks.filter((c) => c.status === "FAIL"),
-    ...orientationChecks.filter((c) => c.status === "FAIL"),
-  ];
-  const totalChecks = presenceChecks.length + positionChecks.length + orientationChecks.length;
-
-  const rationaleText = failedChecks.length
-    ? `${failedChecks.length} of ${totalChecks} verification checks failed: ${failedChecks.map((c) => c.component || c.name).join(", ")}.`
-    : `All ${totalChecks} verification checks passed (presence ${presenceChecks.length}/${presenceChecks.length}, position ${positionChecks.length}/${positionChecks.length}, orientation ${orientationChecks.length}/${orientationChecks.length}).`;
-
-  const explanationText =
-    inspection?.xaiExplanation ||
-    (failedChecks.length
-      ? `${failedChecks.length} verification check(s) reported failure — see the detection details below.`
-      : `All verification checks passed; no anomaly was reported in the inspected regions.`);
-
-  const focusText = inspection?.detections?.length
-    ? `The model attended to ${inspection.detections.length} detected region(s): ${inspection.detections.map((d) => d.id || d.label).join(", ")}.`
-    : "No regions were highlighted by the model.";
-
-  const defectClassText = inspection?.defects?.length
-    ? inspection.defects.map((d) => d.label ?? d.type ?? "defect").join(", ")
-    : "None";
-
-  const cameraBadge = CAMERA_BADGE[cameraStatus.status] || CAMERA_BADGE.UNKNOWN;
-
   // Backend may report that the uploaded image is not a PCB at all.
   const isNotPcb =
     !!inspection &&
     (inspection.isPcb === false || String(inspection.status || "").toUpperCase() === "NOT_PCB");
+
+  // ---- XAI explanation content ---------------------------------------------
+  // Structured XAI payload expected from the backend:
+  //   {
+  //     defect: "...",         → WHAT'S WRONG?
+  //     location: "...",       → WHERE IS IT?
+  //     explanation: "...",    → plain-language explanation / pass rationale
+  //     recommendation: "...", → HOW TO FIX IT?
+  //     visualization: "..."   → image URL for the highlighted region
+  //   }
+  // The frontend only presents backend-provided text — it never invents
+  // defect-specific explanations.
+  const xai = inspection?.xai ?? {};
+  const isPass = inspection?.status === "PASS";
+
+  const xaiWhatWrong = isNotPcb
+    ? "The uploaded image could not be identified as a valid PCB."
+    : (xai.defect || xai.explanation || inspection?.xaiExplanation
+      || (isPass
+        ? "No significant visual defect detected."
+        : "The backend flagged this board as defective, but has not provided an explanation yet."));
+
+  const xaiWhyPass = isPass
+    ? (xai.explanation || "The inspected component regions and PCB layout appear consistent with the expected visual pattern.")
+    : "";
+
+  const xaiWhere = xai.location || "The backend has not provided the affected region yet.";
+
+  const xaiFix = xai.recommendation || (isPass
+    ? "No corrective action required. Board can proceed to the next stage."
+    : "Corrective action details are not available from the backend yet. Inspect the highlighted region and rerun the inspection.");
+
+  const xaiVisualUrl = xai.visualization || gradCam?.heatmapUrl || null;
+
+  const cameraBadge = CAMERA_BADGE[cameraStatus.status] || CAMERA_BADGE.UNKNOWN;
 
   // Bottom status bar presentation per inspection lifecycle state.
   const hudStatus = {
@@ -965,135 +965,91 @@ export default function DashboardPage() {
                 </div>
 
                 {!inspection ? (
-                  <div className="h-44 flex items-center justify-center font-mono text-[10px] text-slate-500 uppercase tracking-widest">
-                    XAI analysis unavailable for this inspection.
+                  <div className="h-44 flex flex-col items-center justify-center gap-2">
+                    <Sparkles className="h-5 w-5 text-slate-600" />
+                    <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+                      Run an inspection to see the XAI explanation.
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* MODEL OUTPUT — detection result data */}
-                    <div className="space-y-1.5">
-                      <label className="font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
-                        Model Output
-                      </label>
-
-                      {/* Confidence */}
-                      <div className="flex items-baseline justify-between">
-                        <span className="font-mono text-2xl font-extrabold text-white">{inspection.confidence}%</span>
-                        <StatusBadge status={inspection.status} />
-                      </div>
-                      <div className="relative h-1.5 w-full rounded-full bg-slate-900">
-                        <div
-                          className="absolute inset-y-0 left-0 rounded-full bg-accent"
-                          style={{ width: `${Math.min(inspection.confidence ?? 0, 100)}%` }}
-                        />
-                      </div>
-
-                      {/* Defect class + bounding boxes */}
-                      <div className="mt-2 space-y-1">
-                        <div className="flex justify-between font-mono text-[10px]">
-                          <span className="text-slate-500">Defect class</span>
-                          <span className={inspection.defects?.length ? "text-danger font-bold" : "text-success font-bold"}>{defectClassText}</span>
-                        </div>
-                        <div className="flex justify-between font-mono text-[10px]">
-                          <span className="text-slate-500">Model</span>
-                          <span className="text-slate-300">{inspection.model || "—"}</span>
-                        </div>
-                      </div>
-
-                      {/* Detection / bounding box list */}
-                      <div className="rounded-lg border border-accent/5 bg-[#050816]/40 p-2.5">
-                        <p className="mb-1.5 text-[8px] font-mono text-slate-500 uppercase tracking-wider">Detections (bounding boxes)</p>
-                        {inspection.detections.length ? (
-                          <div className="space-y-1">
-                            {inspection.detections.map((det) => (
-                              <div key={det.id} className="flex items-center justify-between font-mono text-[9px]">
-                                <span className="text-success font-bold">{det.id}</span>
-                                <span className="text-slate-400">
-                                  {det.confidence}% · {formatValue(det.bbox?.left)},{formatValue(det.bbox?.top)} {formatValue(det.bbox?.width)}×{formatValue(det.bbox?.height)}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="font-mono text-[9px] text-slate-600">No detections recorded.</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="border-t border-accent/5 pt-3">
-                      <label className="mb-2 font-mono text-[9px] text-slate-500 uppercase tracking-wider block font-bold">
-                        XAI Explanation
-                      </label>
-
-                      {/* EXPLANATION */}
+                    {/* NOT A PCB */}
+                    {isNotPcb ? (
                       <div className="space-y-1.5">
-                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
-                          Explanation
+                        <label className="font-mono text-[9px] text-danger uppercase tracking-widest block font-bold">
+                          What's Wrong?
                         </label>
-                        <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{explanationText}</p>
-                      </div>
-
-                      {/* MODEL FOCUS */}
-                      <div className="mt-3 space-y-1.5">
-                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
-                          Model Focus
-                        </label>
-                        <div className="relative h-28 rounded-lg border border-accent/5 bg-black/90 overflow-hidden">
-                          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-                          {gradCam?.heatmapUrl ? (
-                            <img src={gradCam.heatmapUrl} alt="Grad-CAM heatmap" className="absolute inset-0 h-full w-full object-contain opacity-60" />
-                          ) : (
-                            inspection.detections.map((det) => (
-                              <div
-                                key={det.id}
-                                className="absolute border border-success/40 bg-success/5 rounded"
-                                style={{
-                                  left: `${det.bbox.left}%`,
-                                  top: `${det.bbox.top}%`,
-                                  width: `${det.bbox.width}%`,
-                                  height: `${det.bbox.height}%`,
-                                }}
-                              >
-                                <span className="absolute -top-2.5 left-0 font-mono text-[6px] text-success font-bold bg-black/80 px-0.5 rounded whitespace-nowrap">{det.id}</span>
-                              </div>
-                            ))
-                          )}
-                          {!gradCam?.heatmapUrl && inspection.detections.length === 0 && (
-                            <span className="absolute inset-0 flex items-center justify-center font-mono text-[9px] text-slate-600">
-                              No focus regions available
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-sans text-[10px] text-slate-400 leading-relaxed">{focusText}</p>
-                        {inspection.gradCamLayer && (
-                          <p className="font-mono text-[8px] text-slate-500 uppercase tracking-wider">
-                            Grad-CAM Layer: <span className="text-accent/80">{inspection.gradCamLayer}</span>
-                          </p>
-                        )}
-                      </div>
-
-                      {/* VISUAL EXPLANATION */}
-                      <div className="mt-3 space-y-1.5">
-                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
-                          Visual Explanation
-                        </label>
-                        <p className="font-mono text-[9px] text-slate-500 leading-relaxed">
-                          {gradCam
-                            ? gradCam.heatmapUrl
-                              ? "Grad-CAM heatmap loaded from the backend — use the viewport Grad-CAM control to toggle the overlay."
-                              : (gradCam.message || "Grad-CAM visualization unavailable from the backend.")
-                            : "Request Grad-CAM from the viewport control to load the heatmap overlay."}
+                        <p className="font-sans text-[11px] text-slate-300 leading-relaxed">
+                          The uploaded image could not be identified as a valid PCB.
+                        </p>
+                        <p className="font-sans text-[10px] text-slate-500 leading-relaxed">
+                          Try uploading a clear, well-lit image of the PCB and rerun the inspection.
                         </p>
                       </div>
+                    ) : (
+                      <>
+                        {/* WHAT'S WRONG? */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <label className="font-mono text-[9px] text-accent uppercase tracking-widest block font-bold">
+                              What's Wrong?
+                            </label>
+                            {inspection.status === "FAIL" && <span className="h-1.5 w-1.5 rounded-full bg-danger led-slow" />}
+                          </div>
+                          <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{xaiWhatWrong}</p>
+                        </div>
 
-                      {/* RATIONALE */}
-                      <div className="mt-3 space-y-1.5">
-                        <label className="font-mono text-[8px] text-accent/70 uppercase tracking-wider block font-bold">
-                          Rationale
-                        </label>
-                        <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{rationaleText}</p>
-                      </div>
-                    </div>
+                        {/* WHY DID IT PASS? (PASS only) */}
+                        {isPass && (
+                          <div className="space-y-1.5">
+                            <label className="font-mono text-[9px] text-success uppercase tracking-widest block font-bold">
+                              Why Did It Pass?
+                            </label>
+                            <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{xaiWhyPass}</p>
+                          </div>
+                        )}
+
+                        {/* WHERE IS IT? (FAIL only) */}
+                        {!isPass && (
+                          <div className="space-y-1.5">
+                            <label className="font-mono text-[9px] text-warning uppercase tracking-widest block font-bold">
+                              Where Is It?
+                            </label>
+                            <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{xaiWhere}</p>
+                          </div>
+                        )}
+
+                        {/* VISUAL EXPLANATION — highlights where the model focused */}
+                        <div className="space-y-1.5">
+                          <label className="font-mono text-[9px] text-slate-400 uppercase tracking-widest block font-bold">
+                            Visual Explanation
+                          </label>
+                          <div className="relative h-32 rounded-lg border border-accent/5 bg-black/90 overflow-hidden">
+                            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(50,213,131,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(50,213,131,0.05) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+                            {xaiVisualUrl ? (
+                              <img src={xaiVisualUrl} alt="XAI visualization" className="absolute inset-0 h-full w-full object-contain opacity-60" />
+                            ) : (
+                              <span className="absolute inset-0 flex items-center justify-center px-4 text-center font-mono text-[9px] text-slate-600">
+                                {gradCam
+                                  ? (gradCam.message || "XAI visualization unavailable from the backend.")
+                                  : "Request Grad-CAM from the viewport control to load the heatmap overlay."}
+                              </span>
+                            )}
+                          </div>
+                          <p className="font-sans text-[10px] text-slate-500 leading-relaxed">
+                            Highlighted region shows where the model identified the anomaly.
+                          </p>
+                        </div>
+
+                        {/* HOW TO FIX IT? */}
+                        <div className="space-y-1.5">
+                          <label className="font-mono text-[9px] text-accent uppercase tracking-widest block font-bold">
+                            How To Fix It?
+                          </label>
+                          <p className="font-sans text-[11px] text-slate-300 leading-relaxed">{xaiFix}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </GlassCard>
