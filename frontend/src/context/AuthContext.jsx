@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
-      const stored = localStorage.getItem("inspectiq_user");
+      const stored = localStorage.getItem("pcbvision_user");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -13,21 +13,21 @@ export function AuthProvider({ children }) {
   });
 
   const [token, setToken] = useState(
-    () => localStorage.getItem("inspectiq_token") || null,
+    () => localStorage.getItem("pcbvision_token") || null,
   );
 
   const login = useCallback((userData, authToken) => {
     setUser(userData);
     setToken(authToken);
-    localStorage.setItem("inspectiq_user", JSON.stringify(userData));
-    localStorage.setItem("inspectiq_token", authToken);
+    localStorage.setItem("pcbvision_user", JSON.stringify(userData));
+    localStorage.setItem("pcbvision_token", authToken);
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem("inspectiq_user");
-    localStorage.removeItem("inspectiq_token");
+    localStorage.removeItem("pcbvision_user");
+    localStorage.removeItem("pcbvision_token");
   }, []);
 
   const isAuthenticated = !!token;

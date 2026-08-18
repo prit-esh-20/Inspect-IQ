@@ -88,7 +88,7 @@ export default function HeroPanel() {
             custom={0.1}
             className="font-display font-bold leading-none tracking-tight text-white text-[clamp(3rem,8vw,5rem)]"
           >
-            InspectIQ
+            <span className="text-accent">PCB</span>Vision
           </motion.h1>
 
           {/* Subtitle */}

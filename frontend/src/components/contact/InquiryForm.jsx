@@ -264,7 +264,7 @@ export default function InquiryForm() {
         </motion.div>
         <h3 className="font-display text-xl font-semibold text-white">Inquiry Submitted</h3>
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">
-          Thank you for contacting InspectIQ. Our research team will get back to you shortly.
+          Thank you for contacting PCBVision. Our research team will get back to you shortly.
         </p>
         <div className="mt-6 flex items-center gap-2 rounded-full border border-accent/10 bg-accent/5 px-4 py-2 text-[10px] font-medium uppercase tracking-[0.22em] text-accent">
           <Clock className="h-3.5 w-3.5" />

@@ -194,7 +194,7 @@ export default function LoginPage() {
                   <Search className="h-5 w-5 text-primary-bg" />
                 </div>
                 <span className="font-display text-2xl font-bold tracking-tight text-white">
-                  Inspect<span className="text-accent">IQ</span>
+                  <span className="text-accent">PCB</span>Vision
                 </span>
               </div>
             </motion.div>
@@ -205,7 +205,7 @@ export default function LoginPage() {
                 Welcome Back
               </h1>
               <p className="mt-1.5 text-sm text-slate-400">
-                Sign in to continue to the InspectIQ Dashboard.
+                Sign in to continue to the PCBVision Dashboard.
               </p>
             </div>
 
@@ -408,7 +408,7 @@ export default function LoginPage() {
               className="mt-10 text-center"
             >
               <p className="text-[10px] leading-relaxed tracking-wide text-slate-600">
-                InspectIQ AOI Platform
+                PCBVision AOI Platform
               </p>
               <p className="text-[10px] leading-relaxed text-slate-600/50">
                 Embedded Explainable AI for PCB Inspection

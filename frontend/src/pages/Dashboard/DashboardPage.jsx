@@ -397,7 +397,7 @@ export default function DashboardPage() {
           {/* ---- HEADER ---- */}
           <motion.div variants={itemVariants} className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-1">
-              <h1 className="font-display text-2xl font-bold tracking-tight text-white">InspectIQ</h1>
+              <h1 className="font-display text-2xl font-bold tracking-tight text-white">PCBVision</h1>
               <p className="text-xs text-slate-500">PCB Inspection Control Console</p>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-right">

@@ -206,7 +206,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           className="mx-auto mb-12 max-w-6xl text-center"
         >
-          <SectionLabel>Why InspectIQ?</SectionLabel>
+          <SectionLabel>Why PCBVision?</SectionLabel>
           <h2 className="mt-4 font-display text-2xl font-semibold leading-tight text-white sm:text-3xl lg:text-[1.75rem] xl:text-4xl">
             Intelligent Inspection.{" "}
             <span className="bg-gradient-to-r from-accent via-[#7ce7ac] to-accent bg-clip-text text-transparent">
@@ -484,7 +484,7 @@ export default function LandingPage() {
             {/* Info Cards */}
             <div className="space-y-3">
               {[
-                { icon: Mail, label: "Email", value: "team.inspectiq@gmail.com", href: "mailto:team.inspectiq@gmail.com" },
+                { icon: Mail, label: "Email", value: "team.pcbvision@gmail.com", href: "mailto:team.pcbvision@gmail.com" },
                 { icon: Building2, label: "Institution", value: "SIES Graduate School of Technology" },
                 { icon: MapPin, label: "Location", value: "Mumbai, Maharashtra, India" },
                 { icon: Lightbulb, label: "Research Area", value: "Embedded AI \u00B7 Computer Vision \u00B7 Explainable AI" },

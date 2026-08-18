@@ -59,9 +59,9 @@ export default function Navbar() {
             />
           </div>
           <div className="flex flex-col justify-center">
-            <span className="font-display text-base font-bold leading-none tracking-[0.1em] text-white">
-              Inspect<span className="text-accent">IQ</span>
-            </span>
+              <span className="font-display text-base font-bold leading-none tracking-[0.1em] text-white">
+                <span className="text-accent">PCB</span>Vision
+              </span>
             <span className="mt-1 text-[10px] font-medium uppercase leading-none tracking-[0.14em] text-slate-400">
               Intelligent PCB Inspection
             </span>

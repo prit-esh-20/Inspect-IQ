@@ -5,8 +5,8 @@ export const authMock = {
   async login(email, password) {
     await delay(500);
     const match =
-      email.toLowerCase() === "user@inspectiq.xai" && password === "user123"
-        ? { name: "User", email: "user@inspectiq.xai", role: "Engineering" }
+      email.toLowerCase() === "user@pcbvision.xai" && password === "user123"
+        ? { name: "User", email: "user@pcbvision.xai", role: "Engineering" }
         : null;
 
     if (!match) {

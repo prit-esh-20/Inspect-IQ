@@ -28,7 +28,7 @@ export default function Footer() {
               <Search className="h-3.5 w-3.5 text-[#07110F]" />
             </div>
             <span className="font-display text-sm font-bold tracking-wide text-white">
-              Inspect<span className="text-accent">IQ</span>
+              <span className="text-accent">PCB</span>Vision
               <sup className="ml-0.5 text-[8px] text-slate-500">™</sup>
             </span>
           </Link>
@@ -36,7 +36,7 @@ export default function Footer() {
             Explainable PCB Inspection Platform
           </span>
           <span className="text-[9px] text-slate-600 mt-1">
-            &copy; 2026 InspectIQ
+            &copy; 2026 PCBVision
           </span>
           <span className="text-[9px] text-slate-600">
             Built using React &bull; FastAPI &bull; YOLOv8 &bull; Raspberry Pi
