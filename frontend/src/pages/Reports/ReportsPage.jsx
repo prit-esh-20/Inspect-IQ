@@ -5,34 +5,59 @@ import Button from "../../components/common/Button";
 import { useReports } from "../../hooks/useReports";
 import { useNotifications } from "../../context/NotificationContext";
 import { reportsApi } from "../../services/api/reportsApi";
-import { 
-  FileText, 
-  Download, 
-  Calendar, 
-  ArrowRight 
+import {
+  FileText,
+  Download,
+  Eye,
+  Calendar,
+  ArrowRight,
 } from "lucide-react";
+
+const triggerDownload = (url, filename) => {
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+};
 
 export default function ReportsPage() {
   const [exportType, setExportType] = useState("SUMMARY"); // "SUMMARY" | "FULL" | "X-MCCV"
   const [modelTarget, setModelTarget] = useState("ALL");
-  const { reports, loading, error } = useReports();
+  const { reports, loading, error, refresh } = useReports();
   const { notify } = useNotifications();
-
-  const handleExportPdf = async (batchId) => {
-    try {
-      await reportsApi.exportReport(batchId);
-      notify({ type: "success", title: "Report Exported", message: `${batchId}.pdf downloaded.` });
-    } catch {
-      notify({ type: "error", title: "Export Failed", message: "Unable to export the report. Please try again." });
-    }
-  };
 
   const handleCreateReport = async () => {
     try {
       await reportsApi.createReport({ type: exportType, model: modelTarget });
-      notify({ type: "success", title: "Report Compiled", message: "New PDF batch compiled successfully." });
+      await refresh();
+      notify({ type: "success", title: "Report Compiled", message: "New PDF report compiled successfully." });
     } catch {
       notify({ type: "error", title: "Compilation Failed", message: "Unable to compile the report. Please try again." });
+    }
+  };
+
+  const handleViewReport = async (reportId) => {
+    try {
+      const report = await reportsApi.getReport(reportId);
+      if (report?.downloadUrl) {
+        window.open(report.downloadUrl, "_blank");
+      } else {
+        notify({ type: "error", title: "View Failed", message: "This report has no downloadable file yet." });
+      }
+    } catch {
+      notify({ type: "error", title: "View Failed", message: "Unable to open the report. Please try again." });
+    }
+  };
+
+  const handleDownloadReport = async (reportId) => {
+    try {
+      const report = await reportsApi.downloadReport(reportId);
+      triggerDownload(report.downloadUrl, report.filename || `${reportId}.pdf`);
+      notify({ type: "success", title: "Report Downloaded", message: `${report.filename || reportId}.pdf downloaded.` });
+    } catch {
+      notify({ type: "error", title: "Download Failed", message: "Unable to download the report. Please try again." });
     }
   };
 
@@ -41,7 +66,7 @@ export default function ReportsPage() {
 
       {/* Main Container */}
       <main className="flex-1 p-6 md:p-8 space-y-4 max-w-[92%] mx-auto w-full">
-        
+
         {/* Title */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-accent/10 pb-2">
           <div className="text-left space-y-0.5">
@@ -55,7 +80,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-7 items-start">
-          
+
           {/* LEFT COLUMN: Report Generator Form */}
           <div className="text-left">
             <GlassCard className="!p-6" hoverLift={false}>
@@ -70,7 +95,7 @@ export default function ReportsPage() {
 
                 {/* Form Controls */}
                 <div className="space-y-6">
-                  
+
                   {/* Report Type */}
                   <div className="space-y-2.5">
                     <label className="font-mono text-[9px] text-slate-400 uppercase tracking-wider block font-bold">
@@ -174,7 +199,7 @@ export default function ReportsPage() {
               </div>
             ) : (
               reports.map((batch) => (
-              <GlassCard key={batch.id} className="!p-4 text-left" hoverLift={true}>
+              <GlassCard key={batch.id} className="!p-4 text-left" hoverLift={true} data-report-id={batch.id}>
 
                 {/* Report ID + Type */}
                 <div className="flex items-center justify-between gap-3">
@@ -187,28 +212,38 @@ export default function ReportsPage() {
                 {/* Report Title */}
                 <h3 className="mt-2.5 font-display text-xs uppercase tracking-wider text-white font-bold">{batch.title}</h3>
 
-                {/* Date + File Size */}
+                {/* Date + PCB + File Size */}
                 <div className="mt-2.5 flex items-center justify-between gap-3 text-[9px] font-mono text-slate-500">
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-slate-500" /> {batch.date}</span>
+                  <span>{batch.pcbId ? <span className="text-slate-400">PCB: <strong>{batch.pcbId}</strong></span> : null}</span>
                   <span>Size: <strong className="text-slate-400">{batch.size}</strong></span>
                 </div>
 
-                {/* Status + Download */}
+                {/* Status + Actions */}
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-accent/5 pt-2.5">
                   <span className={`flex items-center gap-1 font-mono text-[8px] tracking-wider px-2 py-1 border rounded uppercase font-bold ${
-                    batch.status === "COMPILED" 
-                      ? "border-success/30 bg-success/5 text-success" 
+                    batch.status === "COMPILED"
+                      ? "border-success/30 bg-success/5 text-success"
                       : "border-slate-800 bg-slate-900/60 text-slate-500"
                   }`}>
                     {batch.status}
                   </span>
-                  <button
-                    onClick={() => handleExportPdf(batch.id, batch.title)}
-                    className="p-2 bg-accent/5 hover:bg-accent/15 border border-accent/15 hover:border-accent/40 rounded-lg text-accent hover:text-white transition-all flex items-center justify-center shrink-0 cursor-pointer"
-                    title="Download Report File"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleViewReport(batch.id)}
+                      className="p-2 bg-accent/5 hover:bg-accent/15 border border-accent/15 hover:border-accent/40 rounded-lg text-accent hover:text-white transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                      title="View Report PDF"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadReport(batch.id)}
+                      className="p-2 bg-accent/5 hover:bg-accent/15 border border-accent/15 hover:border-accent/40 rounded-lg text-accent hover:text-white transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                      title="Download Report File"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
               </GlassCard>

@@ -1,20 +1,31 @@
-import { MOCK_REPORTS } from "./mockData";
+import { reportRepository } from "./reportRepository";
+import { MOCK_INSPECTION_RESULT } from "./mockData";
+import { generateInspectionReport } from "../reports/reportService";
 
-const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms));
-
+// Mock stand-ins for the Quality Reports endpoints. The repository is shared
+// with the report-generation flow, so reports compiled on the Dashboard
+// appear here immediately.
 export const reportsMock = {
   async getReports() {
-    await delay(300);
-    return MOCK_REPORTS.map((r) => ({ ...r }));
+    return reportRepository.list();
   },
 
+  // POST /reports — compiles a new report from the centralized mock
+  // inspection data and registers it at the top of the list.
   async createReport(payload) {
-    await delay(500);
-    return { id: "REP-2026-08A", title: "Compiled PDF Report", status: "COMPILED", ...payload };
+    const report = await generateInspectionReport(MOCK_INSPECTION_RESULT, {});
+    reportRepository.add(report);
+    return { ...report, requested: payload || {} };
   },
 
-  async exportReport(reportId) {
-    await delay(400);
-    return { reportId, exported: true };
+  // GET /reports/:id — resolves the record and guarantees a downloadable
+  // PDF blob exists (used by the VIEW action).
+  async getReport(reportId) {
+    return reportRepository.ensure(reportId);
+  },
+
+  // GET /reports/:id/download — returns the download payload for the record.
+  async downloadReport(reportId) {
+    return reportRepository.ensure(reportId);
   },
 };

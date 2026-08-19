@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { reportsApi } from "../services/api/reportsApi";
 
 export function useReports() {
@@ -6,26 +6,37 @@ export function useReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const loadReports = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await reportsApi.getReports();
+      setReports(res);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
     reportsApi
       .getReports()
       .then((res) => {
-        if (!cancelled) {
-          setReports(res);
-          setLoading(false);
-        }
+        if (!cancelled) setReports(res);
       })
       .catch((err) => {
-        if (!cancelled) {
-          setError(err);
-          setLoading(false);
-        }
+        if (!cancelled) setError(err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  return { reports, loading, error };
+  return { reports, loading, error, refresh: loadReports };
 }

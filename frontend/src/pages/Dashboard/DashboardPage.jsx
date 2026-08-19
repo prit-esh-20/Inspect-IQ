@@ -247,8 +247,13 @@ export default function DashboardPage() {
   }, [clearUpload, clearPcbImage, notify]);
 
   const handleGenerateReport = useCallback(async () => {
+    if (!inspection) {
+      notify({ type: "error", title: "No inspection available.", message: "Complete a PCB inspection before generating a report." });
+      setActionStatus({ type: "error", text: "Complete a PCB inspection before generating a report." });
+      return;
+    }
     setActionStatus(null);
-    const result = await generateReport({ pcbId: inspection?.pcbId, inspectionId: inspection?.inspectionId });
+    const result = await generateReport(inspection, { imageUrl: uploadedImage?.url });
     if (!result.ok) {
       notify({ type: "error", title: "Unable to generate report.", message: result.message });
       setActionStatus({ type: "error", text: result.message });
@@ -256,11 +261,10 @@ export default function DashboardPage() {
     }
     setActionStatus({
       type: "success",
-      text: result.result?.downloadUrl
-        ? `Report ${result.result.reportId} generated — download started.`
-        : `Report ${result.result?.reportId || ""} returned by backend (${result.result?.status || "COMPILED"}).`,
+      text: `Report ${result.result?.reportId || ""} generated — download started.`,
     });
-  }, [generateReport, inspection, notify]);
+    notify({ type: "success", title: "Report Generated", message: "Inspection report generated successfully." });
+  }, [generateReport, inspection, uploadedImage, notify]);
 
   const handleExportCsv = useCallback(async () => {
     setActionStatus(null);
@@ -554,18 +558,18 @@ export default function DashboardPage() {
 
               {/* GENERATE REPORT */}
               <motion.button
-                whileHover={generating ? undefined : { scale: 1.03, y: -2 }}
-                whileTap={generating ? undefined : { scale: 0.97 }}
+                whileHover={generating || !inspection ? undefined : { scale: 1.03, y: -2 }}
+                whileTap={generating || !inspection ? undefined : { scale: 0.97 }}
                 onClick={handleGenerateReport}
                 disabled={generating}
                 className={`group inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-[10px] font-semibold uppercase tracking-widest backdrop-blur-sm transition-all duration-300 ${
-                  generating
+                  generating || !inspection
                     ? "cursor-not-allowed border-accent/10 bg-white/[0.02] text-slate-600"
                     : "border-accent/20 bg-white/[0.03] text-white/80 hover:border-accent/40 hover:bg-accent/5 hover:text-white hover:shadow-[0_0_20px_rgba(50,213,131,0.1)]"
                 }`}
               >
                 {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />}
-                {generating ? "Generating..." : "Generate Report"}
+                {generating ? "GENERATING REPORT..." : "Generate Report"}
               </motion.button>
 
               {/* EXPORT CSV */}

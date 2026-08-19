@@ -1,18 +1,20 @@
+import { reportRepository } from "./reportRepository";
+import { generateInspectionReport } from "../reports/reportService";
+
 const delay = (ms = 500) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Static report-generation stand-in. Returns a fixed, deterministic report
-// record — the same shape the real backend will return. It never builds a PDF
-// on the frontend and never claims a download URL that does not exist.
+// Mock report-generation stand-in. Builds a real, downloadable PDF from the
+// inspection data via the dedicated report service, registers the report in
+// the shared repository (so it appears on the Quality Reports page) and
+// returns the same record shape the real backend will return.
 export const reportMock = {
-  async generateReport(payload) {
+  async generateReport(inspection, options = {}) {
+    if (!inspection) {
+      throw new Error("Complete a PCB inspection before generating a report.");
+    }
     await delay(500);
-    return {
-      reportId: "REP-2026-08A",
-      title: "Inspection Operations Report",
-      status: "COMPILED",
-      downloadUrl: null,
-      generatedAt: new Date().toISOString(),
-      requested: payload || {},
-    };
+    const report = await generateInspectionReport(inspection, options);
+    reportRepository.add(report);
+    return report;
   },
 };

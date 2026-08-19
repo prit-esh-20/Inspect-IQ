@@ -2,6 +2,8 @@ import API_CONFIG from "../../config/api";
 import apiClient from "../apiClient";
 import { reportsMock } from "../mock/reportsMock";
 
+// Quality Reports page service. Mirrors the backend endpoints
+// GET /reports, POST /reports, GET /reports/:id and GET /reports/:id/download.
 export const reportsApi = {
   async getReports() {
     if (API_CONFIG.useMock) return reportsMock.getReports();
@@ -15,9 +17,16 @@ export const reportsApi = {
     return data;
   },
 
-  async exportReport(reportId) {
-    if (API_CONFIG.useMock) return reportsMock.exportReport(reportId);
-    const { data } = await apiClient.post(`/reports/${reportId}/export`);
+  async getReport(reportId) {
+    if (API_CONFIG.useMock) return reportsMock.getReport(reportId);
+    const { data } = await apiClient.get(`/reports/${reportId}`);
     return data;
+  },
+
+  async downloadReport(reportId) {
+    if (API_CONFIG.useMock) return reportsMock.downloadReport(reportId);
+    const { data } = await apiClient.get(`/reports/${reportId}/download`, { responseType: "blob" });
+    const filename = `report-${reportId}.pdf`;
+    return { filename, downloadUrl: URL.createObjectURL(data) };
   },
 };
