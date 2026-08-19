@@ -28,6 +28,16 @@ export const SCAN_PHASE = {
   COMPLETE: "complete",
 };
 
+// The Live Inspection page is camera-fed: it always has a PCB frame to
+// inspect (its schematic viewport stands in for the live camera feed). The
+// Dashboard only ever inspects a real uploaded image — it sets pcbImage
+// itself and never uses this placeholder.
+export const LIVE_CAMERA_FEED = Object.freeze({
+  url: null,
+  uploadId: null,
+  name: "Live Camera Feed",
+});
+
 // Single, sequential scan timeline. Horizontal and vertical never overlap:
 //   horizontal: progress 0%  → 50%
 //   vertical:   progress 50% → 100%
@@ -56,7 +66,12 @@ const normalizeInspection = (response) => {
 // Module-level state so Dashboard and Live Inspection render the exact same
 // inspection lifecycle and scan phase. There is ONE inspection process and
 // ONE scan timeline — the pages only visualize it.
+//
+// pcbImage is the PCB frame being inspected. An inspection may ONLY start
+// when a pcbImage exists AND the user presses START INSPECTION — nothing
+// ever auto-starts.
 let snapshot = {
+  pcbImage: null,
   inspection: null,
   loading: false,
   error: null,
@@ -75,6 +90,10 @@ const patch = (next) => {
 
 let runningRef = false;
 let rafId = null;
+// Monotonic run counter. Bumped whenever the inspection is reset or the
+// image is cleared; an in-flight run whose generation is stale must not
+// apply its result (e.g. the user removed the image mid-inspection).
+let runGeneration = 0;
 
 const cancelTimeline = () => {
   if (rafId !== null) {
@@ -128,9 +147,9 @@ const stopScanWithError = (err, fallback) => {
 // inspection result only exists after the user explicitly requests one via
 // runInspection() (or refreshInspection() while the backend is processing).
 // runInspection() is guarded so a single run request can never be triggered
-// twice.
+// twice, and it refuses to start when no PCB image is available.
 const runInspection = async (payload) => {
-  const { scanPhase } = snapshot;
+  const { scanPhase, pcbImage } = snapshot;
   if (
     runningRef ||
     scanPhase === SCAN_PHASE.HORIZONTAL ||
@@ -138,6 +157,11 @@ const runInspection = async (payload) => {
   ) {
     return { ok: false, message: "Inspection already in progress." };
   }
+  if (!pcbImage) {
+    // Never start the scan/inspection without a PCB frame to inspect.
+    return { ok: false, message: "Upload a PCB image before starting inspection." };
+  }
+  const generation = ++runGeneration;
   runningRef = true;
   patch({
     inspection: null,
@@ -151,6 +175,11 @@ const runInspection = async (payload) => {
   startScanTimeline();
   try {
     const response = await inspectionApi.runInspection(payload);
+    if (generation !== runGeneration) {
+      // The image was removed or the run was reset while in flight — ignore
+      // the stale result entirely.
+      return { ok: false, message: "Inspection cancelled." };
+    }
     const { inspection: next, state: nextState, error: nextError } = normalizeInspection(response);
     patch({
       inspection: next,
@@ -164,6 +193,9 @@ const runInspection = async (payload) => {
     }
     return { ok: true, inspection: next, state: nextState };
   } catch (err) {
+    if (generation !== runGeneration) {
+      return { ok: false, message: "Inspection cancelled." };
+    }
     stopScanWithError(err, "Unable to start inspection.");
     return { ok: false, message: toErrorMessage(err, "Unable to start inspection.") };
   } finally {
@@ -204,10 +236,37 @@ const refreshInspection = async () => {
 };
 
 // Clears any inspection result/error and returns to the idle READY state.
-// Used when the uploaded PCB image is discarded.
+// Used when the uploaded PCB image is replaced (the new image is registered
+// separately via setPcbImage) or discarded.
 const resetInspection = () => {
   cancelTimeline();
+  runGeneration += 1;
   patch({
+    inspection: null,
+    error: null,
+    errorMessage: null,
+    loading: false,
+    state: INSPECTION_STATE.READY,
+    scanPhase: SCAN_PHASE.IDLE,
+    scanProgress: 0,
+  });
+  runningRef = false;
+};
+
+// Registers the PCB frame to inspect. An inspection can only start once a
+// pcbImage is present.
+const setPcbImage = (image) => {
+  patch({ pcbImage: image });
+};
+
+// Removes the PCB frame entirely: cancels any running scan, resets the whole
+// inspection to idle, and invalidates any in-flight run so its result is
+// never applied.
+const clearPcbImage = () => {
+  cancelTimeline();
+  runGeneration += 1;
+  patch({
+    pcbImage: null,
     inspection: null,
     error: null,
     errorMessage: null,
@@ -227,6 +286,7 @@ const subscribe = (listener) => {
 // Hook returning only coarse lifecycle values; a component re-renders only
 // when one of its values actually changes (not on every progress frame).
 export function useInspection() {
+  const pcbImage = useSyncExternalStore(subscribe, () => snapshot.pcbImage);
   const inspection = useSyncExternalStore(subscribe, () => snapshot.inspection);
   const loading = useSyncExternalStore(subscribe, () => snapshot.loading);
   const error = useSyncExternalStore(subscribe, () => snapshot.error);
@@ -235,12 +295,15 @@ export function useInspection() {
   const scanPhase = useSyncExternalStore(subscribe, () => snapshot.scanPhase);
 
   return {
+    pcbImage,
     inspection,
     loading,
     error,
     errorMessage,
     state,
     scanPhase,
+    setPcbImage,
+    clearPcbImage,
     runInspection,
     refreshInspection,
     fetchInspection,

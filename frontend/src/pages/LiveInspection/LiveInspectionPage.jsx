@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import Button from "../../components/common/Button";
-import { useInspection, useScanProgress } from "../../hooks/useInspection";
+import { useInspection, useScanProgress, LIVE_CAMERA_FEED } from "../../hooks/useInspection";
 import ScanningOverlay from "../../components/animations/ScanningOverlay";
 import {
   Camera,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 export default function LiveInspectionPage() {
-  const { inspection, error, runInspection, scanPhase } = useInspection();
+  const { inspection, error, runInspection, scanPhase, pcbImage, setPcbImage } = useInspection();
   const progress = useScanProgress();
   const [visualMode, setVisualMode] = useState("yolo"); // "yolo" | "gradcam" | "split"
 
@@ -26,6 +26,14 @@ export default function LiveInspectionPage() {
     { id: "gradcam", label: "Grad-CAM Overlay" },
     { id: "split", label: "Side-by-Side" }
   ];
+
+  // The Live Inspection viewport is camera-fed — its schematic PCB frame
+  // stands in for the live feed, so it registers that frame as the pcbImage
+  // the shared inspection state requires. It never overwrites an image the
+  // user uploaded on the Dashboard. Nothing here ever starts a scan.
+  useEffect(() => {
+    if (!pcbImage) setPcbImage(LIVE_CAMERA_FEED);
+  }, [pcbImage, setPcbImage]);
 
   // Same sequential scan state machine as the Dashboard: both pages read the
   // shared inspection lifecycle and visualize the exact same phase.
@@ -196,7 +204,7 @@ export default function LiveInspectionPage() {
 
                   {/* AOI scan animation — same container as the PCB image, above
                       the image and the detection overlays */}
-                  {isScanning && <ScanningOverlay phase={scanPhase} />}
+                  {isScanning && pcbImage && <ScanningOverlay phase={scanPhase} />}
                 </div>
               </div>
 
@@ -275,7 +283,7 @@ export default function LiveInspectionPage() {
                   </div>
 
                   {/* AOI scan animation over the split view */}
-                  {isScanning && <ScanningOverlay phase={scanPhase} />}
+                  {isScanning && pcbImage && <ScanningOverlay phase={scanPhase} />}
                 </div>
               )}
 

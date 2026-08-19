@@ -67,10 +67,13 @@ export default function DashboardPage() {
   const { notify } = useNotifications();
 
   const {
+    pcbImage,
     inspection,
     state: inspectionState,
     errorMessage: inspectionError,
     scanPhase,
+    setPcbImage,
+    clearPcbImage,
     runInspection,
     refreshInspection,
     resetInspection,
@@ -184,6 +187,12 @@ export default function DashboardPage() {
   // ---- Action handlers ----------------------------------------------------
   const handleStartInspection = useCallback(async () => {
     if (scanning || inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) return;
+    // Inspection requires a PCB image — without one, nothing may start.
+    if (!uploadedImage) {
+      setActionStatus({ type: "error", text: "Upload a PCB image before starting inspection." });
+      notify({ type: "error", title: "No PCB image available.", message: "Upload a PCB image before starting inspection." });
+      return;
+    }
     setActionStatus(null);
     const payload = uploadedImage?.uploadId ? { uploadId: uploadedImage.uploadId } : undefined;
     const result = await runInspection(payload);
@@ -209,24 +218,33 @@ export default function DashboardPage() {
       const result = await uploadImage(file);
       if (result.ok) {
         // A new image means the previous result no longer applies — clear it
-        // so no stale detections/status render on top of the new image.
+        // so no stale detections/status render on top of the new image, then
+        // register the new PCB frame. Inspection stays idle until the user
+        // explicitly presses START INSPECTION.
         resetInspection();
         setSelectedComponent(null);
+        setPcbImage({
+          url: result.result.imageUrl,
+          uploadId: result.result.uploadId || null,
+          name: file.name,
+        });
       } else {
         notify({ type: "error", title: "Unable to upload PCB image.", message: result.message });
         setActionStatus({ type: "error", text: result.message });
       }
     },
-    [uploadImage, resetInspection, notify],
+    [uploadImage, resetInspection, setPcbImage, notify],
   );
 
   const handleDiscardImage = useCallback(() => {
     clearUpload();
-    resetInspection();
+    // Removes the PCB frame: cancels any running scan, resets inspection to
+    // idle, and invalidates any in-flight run.
+    clearPcbImage();
     setSelectedComponent(null);
     setActionStatus({ type: "success", text: "Uploaded image discarded." });
     notify({ type: "success", title: "Image discarded.", message: "Uploaded PCB image removed. Viewport reset." });
-  }, [clearUpload, resetInspection, notify]);
+  }, [clearUpload, clearPcbImage, notify]);
 
   const handleGenerateReport = useCallback(async () => {
     setActionStatus(null);
@@ -750,14 +768,14 @@ export default function DashboardPage() {
                     )
                   ) : (
                     <>
-                      {/* Empty state — waiting for inspection result */}
+                      {/* Empty state — waiting for a PCB image / inspection */}
                       {!scanning && !inspection && !uploadedImage && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
                           <span className="font-mono text-[11px] tracking-[0.3em] text-slate-400 uppercase font-bold">Waiting for inspection</span>
                           <span className="font-mono text-[9px] text-slate-600">
                             {inspectionState === INSPECTION_STATE.ERROR
                               ? inspectionError
-                              : "A result will appear here when the backend provides one"}
+                              : "Upload a PCB image and press Start Inspection to begin."}
                           </span>
                         </div>
                       )}
@@ -881,11 +899,10 @@ export default function DashboardPage() {
                               </>
                             )}
 
-                            {/* Sequential AOI scan animation — same shared
-                                component and state as the Live Inspection page.
-                                Rendered inside the PCB frame container so the
-                                scan line matches the exact PCB bounds. */}
-                            {scanning && <ScanningOverlay phase={scanPhase} />}
+                            {/* Sequential AOI scan animation — same shared component and state as the
+                                Live Inspection page. Rendered only while a PCB
+                                image exists AND a scan is actually running. */}
+                            {scanning && pcbImage && <ScanningOverlay phase={scanPhase} />}
                           </div>
                         </div>
                       )}
@@ -986,9 +1003,24 @@ export default function DashboardPage() {
                 {!inspection || scanning ? (
                   <div className="h-44 flex flex-col items-center justify-center gap-2">
                     <Sparkles className="h-5 w-5 text-slate-600" />
-                    <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
-                      {scanning ? "Processing inspection..." : "Run an inspection to see the XAI explanation."}
-                    </span>
+                    {scanning ? (
+                      <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+                        Processing inspection...
+                      </span>
+                    ) : !uploadedImage ? (
+                      <>
+                        <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+                          Awaiting PCB inspection...
+                        </span>
+                        <span className="px-4 text-center font-mono text-[9px] text-slate-600">
+                          Upload a PCB image and start an inspection to generate an explanation.
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
+                        Awaiting PCB inspection...
+                      </span>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
