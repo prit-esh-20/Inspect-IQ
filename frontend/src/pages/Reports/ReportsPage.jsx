@@ -30,7 +30,10 @@ export default function ReportsPage() {
 
   const handleCreateReport = async () => {
     try {
-      await reportsApi.createReport({ type: exportType, model: modelTarget });
+      const report = await reportsApi.createReport({ type: exportType, model: modelTarget });
+      if (report?.downloadUrl) {
+        triggerDownload(report.downloadUrl, report.filename || `${report.reportId || "report"}.pdf`);
+      }
       await refresh();
       notify({ type: "success", title: "Report Compiled", message: "New PDF report compiled successfully." });
     } catch {

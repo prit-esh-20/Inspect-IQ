@@ -16,7 +16,7 @@ const SEVERITY_BY_DEFECT = {
   "Wrong Part": "Critical",
 };
 
-// Deterministic report-ID derivation: REP-YYYYMMDD-NNN. The per-day sequence
+// Deterministic report-ID derivation: REP-YYYY-MMDD-NNN. The per-day sequence
 // counter is session-stable (module state), so repeated runs never collide and
 // never produce random identifiers.
 const countersByDay = new Map();
@@ -28,7 +28,7 @@ export function deriveReportId(date = new Date()) {
   const key = `${year}-${month}-${day}`;
   const sequence = (countersByDay.get(key) || 0) + 1;
   countersByDay.set(key, sequence);
-  return `REP-${year}${month}${day}-${String(sequence).padStart(3, "0")}`;
+  return `REP-${year}-${month}${day}-${String(sequence).padStart(3, "0")}`;
 }
 
 export const formatReportDate = (date) =>
