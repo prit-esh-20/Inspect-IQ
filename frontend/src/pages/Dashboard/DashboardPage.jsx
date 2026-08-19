@@ -8,6 +8,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import { useDashboard } from "../../hooks/useDashboard";
 import { useInspection, INSPECTION_STATE } from "../../hooks/useInspection";
 import { useUpload } from "../../hooks/useUpload";
+import ScanningOverlay from "../../components/animations/ScanningOverlay";
 import { useReport } from "../../hooks/useReport";
 import { useExport } from "../../hooks/useExport";
 import { useSnapshot } from "../../hooks/useSnapshot";
@@ -69,6 +70,7 @@ export default function DashboardPage() {
     inspection,
     state: inspectionState,
     errorMessage: inspectionError,
+    scanPhase,
     runInspection,
     refreshInspection,
     resetInspection,
@@ -165,6 +167,10 @@ export default function DashboardPage() {
 
   const imageAspect = imageDims ? `${imageDims.width} / ${imageDims.height}` : "600 / 400";
 
+  // Scan is active only during the two sequential AOI sweep phases; both the
+  // Dashboard viewport and the Live Inspection page share this same state.
+  const scanning = scanPhase === "horizontal" || scanPhase === "vertical";
+
   const formatTime = (d) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   const formatDate = (d) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 
@@ -177,7 +183,7 @@ export default function DashboardPage() {
 
   // ---- Action handlers ----------------------------------------------------
   const handleStartInspection = useCallback(async () => {
-    if (inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) return;
+    if (scanning || inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) return;
     setActionStatus(null);
     const payload = uploadedImage?.uploadId ? { uploadId: uploadedImage.uploadId } : undefined;
     const result = await runInspection(payload);
@@ -185,7 +191,7 @@ export default function DashboardPage() {
       notify({ type: "error", title: "Unable to start inspection.", message: result.message });
       setActionStatus({ type: "error", text: result.message });
     }
-  }, [inspectionState, uploadedImage, runInspection, notify]);
+  }, [scanning, inspectionState, uploadedImage, runInspection, notify]);
 
   const handleFetchResult = useCallback(async () => {
     const result = await refreshInspection();
@@ -332,14 +338,17 @@ export default function DashboardPage() {
     [INSPECTION_STATE.ERROR]: { text: "INSPECTION ERROR", cls: "text-danger" },
   }[inspectionState];
 
-  // Button presentation states
-  const inspectionButton = {
-    [INSPECTION_STATE.READY]: { label: "Start Inspection", icon: Play, loading: false, disabled: false },
-    [INSPECTION_STATE.STARTING]: { label: "Starting...", icon: Loader2, loading: true, disabled: true },
-    [INSPECTION_STATE.INSPECTING]: { label: "Inspecting...", icon: RefreshCw, loading: true, disabled: false },
-    [INSPECTION_STATE.COMPLETED]: { label: "Start New Inspection", icon: Play, loading: false, disabled: false },
-    [INSPECTION_STATE.ERROR]: { label: "Retry Inspection", icon: Play, loading: false, disabled: false },
-  }[inspectionState];
+  // Button presentation states — while the scan animation is running the
+  // button always reads "Inspecting...", regardless of the backend ack time.
+  const inspectionButton = scanning
+    ? { label: "Inspecting...", icon: RefreshCw, loading: true, disabled: true }
+    : {
+        [INSPECTION_STATE.READY]: { label: "Start Inspection", icon: Play, loading: false, disabled: false },
+        [INSPECTION_STATE.STARTING]: { label: "Starting...", icon: Loader2, loading: true, disabled: true },
+        [INSPECTION_STATE.INSPECTING]: { label: "Inspecting...", icon: RefreshCw, loading: true, disabled: false },
+        [INSPECTION_STATE.COMPLETED]: { label: "Start New Inspection", icon: Play, loading: false, disabled: false },
+        [INSPECTION_STATE.ERROR]: { label: "Retry Inspection", icon: Play, loading: false, disabled: false },
+      }[inspectionState];
 
   return (
     <AppLayout>
@@ -742,7 +751,7 @@ export default function DashboardPage() {
                   ) : (
                     <>
                       {/* Empty state — waiting for inspection result */}
-                      {!inspection && !uploadedImage && (
+                      {!scanning && !inspection && !uploadedImage && (
                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
                           <span className="font-mono text-[11px] tracking-[0.3em] text-slate-400 uppercase font-bold">Waiting for inspection</span>
                           <span className="font-mono text-[9px] text-slate-600">
@@ -754,7 +763,7 @@ export default function DashboardPage() {
                       )}
 
                       {/* Uploaded image — image only, no overlay until a real inspection result exists */}
-                      {!inspection && uploadedImage && (
+                      {!scanning && !inspection && uploadedImage && (
                         <div className="absolute inset-x-0 bottom-10 z-10 flex justify-center">
                           <span className="rounded-lg border border-accent/10 bg-black/70 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.25em] text-slate-400 backdrop-blur-sm">
                             Awaiting inspection — press Start Inspection
@@ -762,8 +771,9 @@ export default function DashboardPage() {
                         </div>
                       )}
 
-                      {/* Inspection state overlay */}
-                      {(inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) && (
+                      {/* Inspection state overlay — hidden while the scan
+                          animation is running so the PCB frame stays visible */}
+                      {(inspectionState === INSPECTION_STATE.STARTING || inspectionState === INSPECTION_STATE.INSPECTING) && !scanning && (
                         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/60 backdrop-blur-sm">
                           <Loader2 className="h-6 w-6 animate-spin text-accent" />
                           <span className="font-mono text-[10px] tracking-[0.3em] text-accent uppercase font-bold">
@@ -781,8 +791,10 @@ export default function DashboardPage() {
                         </div>
                       )}
 
-                      {/* Image container — PCB frame + aligned overlay layers */}
-                      {(uploadedImage || (inspection && !uploadedImage)) && (
+                      {/* Image container — PCB frame + aligned overlay layers.
+                          Rendered during the scan too so the scan line always
+                          sweeps the visible PCB area. */}
+                      {(uploadedImage || inspection || scanning) && (
                         <div className="relative z-[5] flex h-full w-full items-center justify-center">
                           <div className="relative w-full max-h-full" style={{ aspectRatio: imageAspect }}>
                             {uploadedImage ? (
@@ -824,8 +836,9 @@ export default function DashboardPage() {
                               </svg>
                             )}
 
-                            {/* Non-PCB result — show the verdict, never fake detections */}
-                            {isNotPcb ? (
+                            {/* Non-PCB result — show the verdict after the
+                                scan finishes, never fake detections */}
+                            {!scanning && isNotPcb ? (
                               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/40">
                                 <span className="font-mono text-[11px] tracking-[0.3em] text-danger uppercase font-bold">Not a PCB</span>
                                 <span className="max-w-[70%] text-center font-mono text-[9px] text-slate-400">
@@ -867,6 +880,12 @@ export default function DashboardPage() {
                                 </AnimatePresence>
                               </>
                             )}
+
+                            {/* Sequential AOI scan animation — same shared
+                                component and state as the Live Inspection page.
+                                Rendered inside the PCB frame container so the
+                                scan line matches the exact PCB bounds. */}
+                            {scanning && <ScanningOverlay phase={scanPhase} />}
                           </div>
                         </div>
                       )}
@@ -964,11 +983,11 @@ export default function DashboardPage() {
                   </span>
                 </div>
 
-                {!inspection ? (
+                {!inspection || scanning ? (
                   <div className="h-44 flex flex-col items-center justify-center gap-2">
                     <Sparkles className="h-5 w-5 text-slate-600" />
                     <span className="font-mono text-[10px] text-slate-500 uppercase tracking-widest">
-                      Run an inspection to see the XAI explanation.
+                      {scanning ? "Processing inspection..." : "Run an inspection to see the XAI explanation."}
                     </span>
                   </div>
                 ) : (

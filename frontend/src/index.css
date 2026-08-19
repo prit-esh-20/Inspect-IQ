@@ -158,6 +158,115 @@ body {
   pointer-events: none;
 }
 
+/* AOI scanning overlay — sequential scan lines (horizontal, then vertical).
+   The overlay wrapper is `absolute inset-0 pointer-events-none` and sits
+   inside the PCB frame container so the lines always match the PCB bounds. */
+
+/* Transform-based scan axes: the wrapper spans the full PCB frame and the
+   line is pinned to its trailing edge, so
+   translate(progress% - 100%) parks the line exactly at progress%. */
+.scan-axis-h {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.scan-axis-v {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.scan-line-h {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 2%,
+    rgba(50, 213, 131, 0.9) 18%,
+    #7ce7ac 50%,
+    rgba(50, 213, 131, 0.9) 82%,
+    transparent 98%
+  );
+  box-shadow:
+    0 0 8px 1px rgba(50, 213, 131, 0.55),
+    0 0 18px 3px rgba(50, 213, 131, 0.22);
+  pointer-events: none;
+}
+
+.scan-line-h::before,
+.scan-line-h::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.scan-line-h::before {
+  bottom: 2px;
+  height: 26px;
+  background: linear-gradient(to top, rgba(50, 213, 131, 0.25), transparent);
+}
+
+.scan-line-h::after {
+  top: 2px;
+  height: 10px;
+  background: linear-gradient(to bottom, rgba(50, 213, 131, 0.1), transparent);
+}
+
+.scan-line-v {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent 2%,
+    rgba(50, 213, 131, 0.9) 18%,
+    #7ce7ac 50%,
+    rgba(50, 213, 131, 0.9) 82%,
+    transparent 98%
+  );
+  box-shadow:
+    0 0 8px 1px rgba(50, 213, 131, 0.55),
+    0 0 18px 3px rgba(50, 213, 131, 0.22);
+  pointer-events: none;
+}
+
+.scan-line-v::before,
+.scan-line-v::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.scan-line-v::before {
+  right: 2px;
+  width: 26px;
+  background: linear-gradient(to left, rgba(50, 213, 131, 0.25), transparent);
+}
+
+.scan-line-v::after {
+  left: 2px;
+  width: 10px;
+  background: linear-gradient(to right, rgba(50, 213, 131, 0.1), transparent);
+}
+
 @keyframes pulse-glow {
   0%,
   100% {

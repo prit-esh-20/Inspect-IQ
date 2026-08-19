@@ -49,3 +49,11 @@
  */
 
 export const INSPECTION_EMPTY = null;
+
+/**
+ * @typedef {"idle"|"horizontal"|"vertical"|"complete"} ScanPhase
+ * - idle       — nothing running
+ * - horizontal — phase 1: horizontal scan line sweeps TOP → BOTTOM
+ * - vertical   — phase 2: vertical scan line sweeps LEFT → RIGHT
+ * - complete   — scanning finished, the inspection result may be revealed
+ */

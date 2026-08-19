@@ -3,7 +3,8 @@ import AppLayout from "../../components/layout/AppLayout";
 import GlassCard from "../../components/cards/GlassCard";
 import StatusBadge from "../../components/common/StatusBadge";
 import Button from "../../components/common/Button";
-import { useInspection } from "../../hooks/useInspection";
+import { useInspection, useScanProgress } from "../../hooks/useInspection";
+import ScanningOverlay from "../../components/animations/ScanningOverlay";
 import {
   Camera,
   Activity,
@@ -16,7 +17,8 @@ import {
 } from "lucide-react";
 
 export default function LiveInspectionPage() {
-  const { inspection, loading, error, runInspection } = useInspection();
+  const { inspection, error, runInspection, scanPhase } = useInspection();
+  const progress = useScanProgress();
   const [visualMode, setVisualMode] = useState("yolo"); // "yolo" | "gradcam" | "split"
 
   const modes = [
@@ -25,10 +27,25 @@ export default function LiveInspectionPage() {
     { id: "split", label: "Side-by-Side" }
   ];
 
+  // Same sequential scan state machine as the Dashboard: both pages read the
+  // shared inspection lifecycle and visualize the exact same phase.
+  const isScanning = scanPhase === "horizontal" || scanPhase === "vertical";
+
+  // The scan is a purely visual overlay: existing detection boxes and the
+  // status strip stay visible and stable while scanning (no data is touched).
+  // Only the XAI panel waits for the scan to finish before revealing the
+  // latest result. The inspection itself runs asynchronously — mock today,
+  // real API later.
   const defect = inspection?.defects?.[0] || null;
   const isNotPcb =
     !!inspection &&
     (inspection.isPcb === false || String(inspection.status || "").toUpperCase() === "NOT_PCB");
+  const xaiInspection = isScanning ? null : inspection;
+
+  const handleStartInspection = async () => {
+    if (isScanning) return;
+    await runInspection();
+  };
 
   return (
     <AppLayout>
@@ -54,9 +71,9 @@ export default function LiveInspectionPage() {
               Camera Status: Ready
             </div>
 
-            <Button variant="secondary" className="flex items-center gap-1.5 py-1 px-2.5" onClick={runInspection} disabled={loading}>
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              {loading ? "Running Inspection..." : "Re-scan Frame"}
+            <Button variant="secondary" className="flex items-center gap-1.5 py-1 px-2.5" onClick={handleStartInspection} disabled={isScanning}>
+              <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? "animate-spin" : ""}`} />
+              {isScanning ? "INSPECTING..." : "START INSPECTION"}
             </Button>
           </div>
         </div>
@@ -102,9 +119,9 @@ export default function LiveInspectionPage() {
 
               {/* Image container — centered PCB frame; overlays share the same coordinate space */}
               <div className="relative z-0 flex h-full w-full items-center justify-center">
-                <div className="relative w-full max-h-full" style={{ aspectRatio: "600 / 400" }}>
+                <div className="relative w-full max-h-full overflow-hidden" style={{ aspectRatio: "600 / 400" }}>
                   {/* Grid of circuit tracks */}
-                  <svg className="w-full h-full text-accent/20" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="relative z-[1] w-full h-full text-accent/20" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <rect x="10" y="10" width="580" height="380" rx="8" stroke="currentColor" strokeWidth="1" />
                     <circle cx="300" cy="200" r="50" stroke="currentColor" strokeWidth="1" />
                     <circle cx="150" cy="120" r="30" stroke="currentColor" strokeWidth="1" />
@@ -114,7 +131,7 @@ export default function LiveInspectionPage() {
 
                   {/* Render Visual Mode 1: Standard YOLO Bounding Boxes */}
                   {inspection && visualMode === "yolo" && isNotPcb && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-black/40 rounded-lg">
+                    <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-2 bg-black/40 rounded-lg">
                       <span className="font-mono text-[11px] tracking-[0.3em] text-danger uppercase font-bold">Not a PCB</span>
                       <span className="max-w-[70%] text-center font-mono text-[9px] text-slate-400">
                         Uploaded image could not be identified as a valid PCB.
@@ -127,7 +144,7 @@ export default function LiveInspectionPage() {
                       {inspection.detections?.length > 0 && inspection.detections.map((det) => (
                         <div
                           key={det.id}
-                          className="absolute border-2 border-success bg-success/5 rounded font-mono text-[9px] text-success font-bold p-1"
+                          className="absolute z-[2] border-2 border-success bg-success/5 rounded font-mono text-[9px] text-success font-bold p-1"
                           style={{
                             left: `${det.bbox.left}%`,
                             top: `${det.bbox.top}%`,
@@ -142,7 +159,7 @@ export default function LiveInspectionPage() {
 
                       {defect && (
                         <div
-                          className="absolute border-2 border-danger bg-danger/10 rounded font-mono text-[9px] text-danger font-bold p-1 animate-pulse"
+                          className="absolute z-[2] border-2 border-danger bg-danger/10 rounded font-mono text-[9px] text-danger font-bold p-1 animate-pulse"
                           style={{
                             left: `${(defect.boundingBox?.x / 600) * 100}%`,
                             top: `${(defect.boundingBox?.y / 400) * 100}%`,
@@ -161,7 +178,7 @@ export default function LiveInspectionPage() {
                   {inspection && visualMode === "gradcam" && (
                     <>
                       <div
-                        className="absolute rounded-full pointer-events-none transition-all duration-300 blur-[35px]"
+                        className="absolute z-[2] rounded-full pointer-events-none transition-all duration-300 blur-[35px]"
                         style={{
                           left: defect ? `${(defect.boundingBox?.x / 600) * 100 + 8}%` : "52%",
                           top: defect ? `${(defect.boundingBox?.y / 400) * 100 + 8}%` : "48%",
@@ -171,51 +188,43 @@ export default function LiveInspectionPage() {
                           opacity: 0.85
                         }}
                       />
-                      <div className="absolute bottom-4 right-4 bg-[#050816]/95 border border-accent/15 px-3 py-1.5 rounded font-mono text-[8px] text-slate-400">
+                      <div className="absolute bottom-4 right-4 z-[2] bg-[#050816]/95 border border-accent/15 px-3 py-1.5 rounded font-mono text-[8px] text-slate-400">
                         Activation map: {inspection.gradCamLayer}
                       </div>
                     </>
                   )}
+
+                  {/* AOI scan animation — same container as the PCB image, above
+                      the image and the detection overlays */}
+                  {isScanning && <ScanningOverlay phase={scanPhase} />}
                 </div>
               </div>
 
-              {/* Laser scan line while an inspection is processing */}
-              {loading && (
-                <div className="laser-scanner" style={{ animationDuration: "1.2s" }} />
-              )}
-
-              {/* Loading state */}
-              {loading && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-                  <span className="font-mono text-[10px] tracking-[0.3em] text-accent uppercase font-bold">Running inspection...</span>
-                </div>
-              )}
-
               {/* Error state */}
-              {!loading && error && (
+              {!isScanning && error && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 gap-2">
                   <span className="font-mono text-[10px] tracking-[0.3em] text-danger uppercase font-bold">Unable to retrieve inspection data</span>
-                  <button onClick={runInspection} className="font-mono text-[9px] text-accent underline underline-offset-4 cursor-pointer">
+                  <button onClick={handleStartInspection} className="font-mono text-[9px] text-accent underline underline-offset-4 cursor-pointer">
                     Please try again
                   </button>
                 </div>
               )}
 
               {/* Empty state — no inspection result yet */}
-              {!loading && !error && !inspection && (
+              {!isScanning && !error && !inspection && (
                 <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2">
                   <span className="font-mono text-[11px] tracking-[0.3em] text-slate-400 uppercase font-bold">Waiting for inspection</span>
-                  <span className="font-mono text-[9px] text-slate-600">Press Re-scan Frame to run an inspection</span>
+                  <span className="font-mono text-[9px] text-slate-600">Press START INSPECTION to run an inspection</span>
                 </div>
               )}
 
               {/* Render Visual Mode 3: Split (Side-by-Side) */}
               {inspection && visualMode === "split" && (
-                <div className="grid grid-cols-2 w-full h-full divide-x divide-accent/20">
+                <div className="relative grid grid-cols-2 w-full h-full divide-x divide-accent/20">
                   {/* Left: YOLO Detect */}
                   <div className="relative w-full h-full flex items-center justify-center">
-                    <div className="relative w-full max-h-full" style={{ aspectRatio: "600 / 400" }}>
-                      <svg className="w-full h-full text-accent/20 opacity-40" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <div className="relative w-full max-h-full overflow-hidden" style={{ aspectRatio: "600 / 400" }}>
+                      <svg className="relative z-[1] w-full h-full text-accent/20 opacity-40" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="10" y="10" width="580" height="380" rx="8" stroke="currentColor" strokeWidth="1" />
                         <circle cx="300" cy="200" r="50" stroke="currentColor" strokeWidth="1" />
                         <circle cx="150" cy="120" r="30" stroke="currentColor" strokeWidth="1" />
@@ -225,7 +234,7 @@ export default function LiveInspectionPage() {
                       {inspection.detections.slice(0, 1).map((det) => (
                         <div
                           key={det.id}
-                          className="absolute border border-success bg-success/5 rounded font-mono text-[8px] text-success p-0.5"
+                          className="absolute z-[2] border border-success bg-success/5 rounded font-mono text-[8px] text-success p-0.5"
                           style={{
                             left: `${det.bbox.left}%`,
                             top: `${det.bbox.top}%`,
@@ -242,8 +251,8 @@ export default function LiveInspectionPage() {
 
                   {/* Right: Grad-CAM Overlay */}
                   <div className="relative w-full h-full flex items-center justify-center bg-accent/5">
-                    <div className="relative w-full max-h-full" style={{ aspectRatio: "600 / 400" }}>
-                      <svg className="w-full h-full text-accent/20 opacity-40" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <div className="relative w-full max-h-full overflow-hidden" style={{ aspectRatio: "600 / 400" }}>
+                      <svg className="relative z-[1] w-full h-full text-accent/20 opacity-40" viewBox="0 0 600 400" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <rect x="10" y="10" width="580" height="380" rx="8" stroke="currentColor" strokeWidth="1" />
                         <circle cx="300" cy="200" r="50" stroke="currentColor" strokeWidth="1" />
                         <circle cx="150" cy="120" r="30" stroke="currentColor" strokeWidth="1" />
@@ -251,7 +260,7 @@ export default function LiveInspectionPage() {
                         <path d="M10 200h580M300 10v380" stroke="currentColor" strokeWidth="0.5" strokeDasharray="4 4" />
                       </svg>
                       <div
-                        className="absolute rounded-full pointer-events-none blur-[25px]"
+                        className="absolute z-[2] rounded-full pointer-events-none blur-[25px]"
                         style={{
                           left: defect ? `${(defect.boundingBox?.x / 600) * 100}%` : "35%",
                           top: defect ? `${(defect.boundingBox?.y / 400) * 100}%` : "35%",
@@ -264,14 +273,35 @@ export default function LiveInspectionPage() {
                     </div>
                     <span className="absolute top-2 left-2 font-mono text-[8px] bg-secondary-bg px-2 py-0.5 border border-accent/10 rounded">XAI HEATMAP</span>
                   </div>
+
+                  {/* AOI scan animation over the split view */}
+                  {isScanning && <ScanningOverlay phase={scanPhase} />}
+                </div>
+              )}
+
+              {/* Compact scan progress indicator — viewport corner, clear of the PCB */}
+              {isScanning && (
+                <div className="absolute bottom-2 right-2 z-[12] flex items-center gap-2 rounded-md border border-accent/15 bg-[#050816]/90 px-2.5 py-1.5 font-mono text-[8px] shadow-lg">
+                  <span className="text-slate-400 uppercase tracking-widest">
+                    Inspection in progress
+                  </span>
+                  <div className="h-[3px] w-16 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-accent shadow-[0_0_6px_rgba(50,213,131,0.6)]"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <span className="font-bold text-accent tracking-wider">
+                    {Math.floor(progress)}%
+                  </span>
                 </div>
               )}
 
               {/* Bottom Diagnostics Tag */}
-              <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-[#050816]/90 border border-accent/15 px-3 py-1.5 rounded font-mono text-[9px] z-10 shadow-lg">
+              <div className="absolute bottom-3 left-3 z-[20] flex items-center gap-2 bg-[#050816]/90 border border-accent/15 px-3 py-1.5 rounded font-mono text-[9px] shadow-lg">
                 <span className="text-[#9ca3af]">CAMERA STATUS:</span>
-                <span className="text-[#00E5FF] font-bold">READY</span>
-                <span className="w-1.5 h-1.5 bg-success rounded-full led-slow" />
+                <span className={`font-bold ${isScanning ? "text-accent" : "text-[#00E5FF]"}`}>{isScanning ? "SCANNING" : "READY"}</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${isScanning ? "bg-accent led-fast" : "bg-success led-slow"}`} />
                 {inspection && <StatusBadge status={inspection.status} />}
               </div>
             </div>
@@ -280,9 +310,9 @@ export default function LiveInspectionPage() {
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 px-3 py-2 rounded-md border border-accent/10 bg-[#050816]/50">
               {/* Camera status */}
               <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-success led-slow" />
-                <span className="font-mono text-[9px] tracking-widest text-slate-400 uppercase font-bold">
-                  Camera Ready
+                <span className={`w-1.5 h-1.5 rounded-full ${isScanning ? "bg-accent led-fast" : "bg-success led-slow"}`} />
+                <span className={`font-mono text-[9px] tracking-widest uppercase font-bold ${isScanning ? "text-accent" : "text-slate-400"}`}>
+                  {isScanning ? "Scanning..." : "Camera Ready"}
                 </span>
               </div>
 
@@ -323,7 +353,7 @@ export default function LiveInspectionPage() {
               </span>
             </div>
 
-            {!inspection ? (
+            {!xaiInspection ? (
               <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
                 <span className="font-mono text-[10px] tracking-[0.3em] text-slate-400 uppercase font-bold">
                   XAI Analysis
@@ -339,28 +369,28 @@ export default function LiveInspectionPage() {
                   <div className="text-left">
                     <span className="block font-mono text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Detection</span>
                     <span className={`inline-flex items-center gap-1 font-display text-[11px] font-extrabold uppercase tracking-wider ${
-                      inspection.status === "PASS" ? "text-success" : "text-danger"
+                      xaiInspection.status === "PASS" ? "text-success" : "text-danger"
                     }`}>
-                      {inspection.status === "PASS"
+                      {xaiInspection.status === "PASS"
                         ? <CheckCircle className="w-3.5 h-3.5" />
                         : <XCircle className="w-3.5 h-3.5" />}
-                      {inspection.status}
+                      {xaiInspection.status}
                     </span>
                   </div>
 
                   <div className="text-left">
                     <span className="block font-mono text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Defect</span>
                     <span className={`font-display text-[11px] font-extrabold uppercase tracking-wider ${
-                      inspection.status === "FAIL" ? "text-danger" : "text-slate-300"
+                      xaiInspection.status === "FAIL" ? "text-danger" : "text-slate-300"
                     }`}>
-                      {inspection.status === "FAIL" && defect ? defect.type : "None"}
+                      {xaiInspection.status === "FAIL" && defect ? defect.type : "None"}
                     </span>
                   </div>
 
                   <div className="text-left">
                     <span className="block font-mono text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Confidence</span>
                     <span className="font-display text-[11px] font-extrabold text-accent tracking-wider">
-                      {inspection.confidence}%
+                      {xaiInspection.confidence}%
                     </span>
                   </div>
 
@@ -379,14 +409,14 @@ export default function LiveInspectionPage() {
                 <div className="pt-2 border-t border-accent/5">
                   <span className="block font-mono text-[8px] text-slate-500 uppercase tracking-widest mb-1">Model Rationale</span>
                   <p className="font-sans text-[11px] text-slate-300 leading-relaxed text-left">
-                    {inspection.xaiExplanation}
+                    {xaiInspection.xaiExplanation}
                   </p>
                 </div>
 
                 {/* Model info */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[8.5px] font-mono text-slate-500">
-                  <span>Model: <strong className="text-slate-400">{inspection.model}</strong></span>
-                  <span>Layer: <strong className="text-slate-400">{inspection.gradCamLayer}</strong></span>
+                  <span>Model: <strong className="text-slate-400">{xaiInspection.model}</strong></span>
+                  <span>Layer: <strong className="text-slate-400">{xaiInspection.gradCamLayer}</strong></span>
                 </div>
               </>
             )}
